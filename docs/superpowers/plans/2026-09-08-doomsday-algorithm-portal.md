@@ -394,15 +394,14 @@ git commit -m "feat: generate appearances, co-appearances, post-credits for Phas
 
 **Interfaces:**
 - Consumes: `generate_films`, `generate_characters`, `generate_appearances` from Tasks 1–2.
-- Produces: `generate_phase5(characters, seed) -> dict` with keys `films` (7 hidden films, no `final_billing_position` field on any row), `appearances`, `co_appearances`, and `characterOutcomes` — a `{character_name: {survived, topThirdScreentime, hadTeamUp}}` map derived from the same `appearances`/`co_appearances` data, one entry per character who appears anywhere in Phase 5. This is the answer key — never written to the participant-facing CSV bundle (enforced in Task 5). `characterOutcomes` is consumed directly by Task 9's `revealPhase5` Cloud Function for draft scoring — its three fields must match `draftCharacterScore`'s `outcome` parameter shape from Task 6 exactly.
-- Produces: `verify_simpsons_paradox(films) -> bool`, `verify_survivorship_gap(characters, appearances) -> bool`, `verify_leaky_column(appearances) -> bool` — used both by tests here and as a build-time gate in Task 5's CLI.
+- Produces: `generate_phase5(characters, seed) -> dict` with keys `films` (7 hidden films, no `final_billing_position` field on any row), `appearances`, `co_appearances`, and `characterOutcomes` — a `{character_name: {survived, topThirdScreentime, hadTeamUp}}` map derived from the same `appearances`/`co_appearances` data, one entry per character who appears anywhere in Phase 5. This is the answer key — never written to the participant-facing CSV bundle (enforced in Task 4). `characterOutcomes` is consumed directly by Task 9's `revealPhase5` Cloud Function for draft scoring — its three fields must match `draftCharacterScore`'s `outcome` parameter shape from Task 6 exactly.
+- Produces: `verify_simpsons_paradox(films) -> bool`, `verify_survivorship_gap(characters, appearances) -> bool`, `verify_leaky_column(appearances, phase5_appearances) -> bool` — used both by tests here and as a build-time gate in Task 4's CLI. `verify_leaky_column` checks both directions of its own claim: the field is present on every Phase 1-4 row, AND absent from every Phase 5 row — checking only the first direction would let a Phase-5 leak slip past the gate undetected.
 
 - [ ] **Step 1: Write the failing test**
 
 ```python
 # portal/dataset/generator/test_traps.py
 import unittest
-import statistics
 from entities import generate_films, generate_characters
 from appearances import generate_appearances
 from phase5 import generate_phase5
@@ -421,10 +420,8 @@ class TestTraps(unittest.TestCase):
         self.assertTrue(verify_survivorship_gap(self.characters, self.appearances))
 
     def test_leaky_column_present_in_history_absent_in_future(self):
-        self.assertTrue(verify_leaky_column(self.appearances))
         phase5 = generate_phase5(self.characters, seed=42)
-        for row in phase5["appearances"]:
-            self.assertNotIn("final_billing_position", row)
+        self.assertTrue(verify_leaky_column(self.appearances, phase5["appearances"]))
 
     def test_phase5_has_7_films_and_is_deterministic(self):
         p5a = generate_phase5(self.characters, seed=99)
@@ -440,6 +437,23 @@ class TestTraps(unittest.TestCase):
             self.assertIn("survived", outcome)
             self.assertIn("topThirdScreentime", outcome)
             self.assertIn("hadTeamUp", outcome)
+
+    def test_phase5_characters_do_not_reappear_after_death(self):
+        # A character sampled independently per film with no cross-film
+        # death tracking could die in one Phase 5 film and be cast normally
+        # in a later one, producing a contradictory characterOutcomes entry
+        # (whichever appearance is processed last silently wins). This test
+        # asserts death is permanent across Phase 5's own films, the same
+        # property Task 2 already enforces across Phases 1-4.
+        p5 = generate_phase5(self.characters, seed=42)
+        film_order = {f["name"]: i for i, f in enumerate(p5["films"])}
+        apps_sorted = sorted(p5["appearances"], key=lambda a: film_order[a["film"]])
+        dead = set()
+        for a in apps_sorted:
+            self.assertNotIn(a["character"], dead,
+                f"{a['character']} appears in {a['film']} after already being marked dead")
+            if not a["survived"]:
+                dead.add(a["character"])
 
 if __name__ == "__main__":
     unittest.main()
@@ -480,8 +494,10 @@ def verify_survivorship_gap(characters, appearances):
     roster_names = {c["name"] for c in characters}
     return len(roster_names) > len(appeared_names)
 
-def verify_leaky_column(appearances):
-    return all("final_billing_position" in a for a in appearances) and len(appearances) > 0
+def verify_leaky_column(appearances, phase5_appearances):
+    present_in_history = all("final_billing_position" in a for a in appearances) and len(appearances) > 0
+    absent_in_future = all("final_billing_position" not in a for a in phase5_appearances)
+    return present_in_history and absent_in_future
 ```
 
 ```python
@@ -506,23 +522,34 @@ def generate_phase5(characters, seed):
             "audience_score": None,
         })
 
-    pool = list(characters)
-    rng.shuffle(pool)
+    # Alive-state tracking across Phase 5's own 7 films, mirroring Task 2's
+    # generate_appearances exactly — without this, a character sampled
+    # independently per film can die in an earlier Phase 5 film and be cast
+    # normally (possibly "surviving") in a later one, producing two
+    # contradictory outcomes for the same character in characterOutcomes.
+    # Phase 5's films list is already in strict chronological order (built
+    # by a single sequential range loop above, no re-sort needed).
+    alive = {c["name"]: True for c in characters}
     appearances = []
     for film in films:
-        cast = rng.sample(pool, min(CAST_SIZE_PER_FILM, len(pool)))
+        pool = [c for c in characters if alive[c["name"]]]
+        rng.shuffle(pool)
+        cast = pool[:min(CAST_SIZE_PER_FILM, len(pool))]
         cast_sorted = sorted(cast, key=lambda c: -c["centrality"])
         for order, c in enumerate(cast_sorted, start=1):
             base_screentime = 30 * (c["centrality"] + 0.2)
             screentime = round(max(1.0, base_screentime + rng.uniform(-5, 5)), 1)
             hazard = 0.12 * (1 - c["centrality"])
+            survived = rng.random() > hazard
+            if not survived:
+                alive[c["name"]] = False
             appearances.append({
                 "character": c["name"],
                 "film": film["name"],
                 "screentime_min": screentime,
                 "dialogue_lines": int(max(0, screentime * rng.uniform(2.0, 4.0))),
                 "billing_order": order,
-                "survived": rng.random() > hazard,
+                "survived": survived,
                 # deliberately no "final_billing_position" — cannot exist
                 # for a film that hasn't released in the fiction yet.
             })
@@ -556,6 +583,10 @@ def generate_phase5(characters, seed):
         teamed_up_characters.add(row["character_a"])
         teamed_up_characters.add(row["character_b"])
 
+    # Safe to overwrite on each pass now that death is permanent above: a
+    # character with survived=False in one film is excluded from every
+    # later film's pool, so their last (and only ever "final") appearance
+    # is always the correct source of truth for their outcome.
     character_outcomes = {}
     for a in appearances:
         name = a["character"]
@@ -576,7 +607,7 @@ def generate_phase5(characters, seed):
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd portal/dataset/generator && python -m unittest test_traps -v`
-Expected: PASS (4 tests). If `test_simpsons_paradox_present` fails, adjust the coefficients in `entities.py`'s `generate_films` (the `1.8` multiplier and phase step sizes) until both directions hold — this is expected tuning, not a design change.
+Expected: PASS (6 tests). If `test_simpsons_paradox_present` fails, adjust the coefficients in `entities.py`'s `generate_films` (the `1.8` multiplier and phase step sizes) until both directions hold — this is expected tuning, not a design change.
 
 - [ ] **Step 5: Commit**
 
@@ -665,10 +696,11 @@ def build_dataset(seed, output_dir):
     appearances = generate_appearances(films, characters, seed)
     co_appearances = generate_co_appearances(appearances, seed)
     post_credits = generate_post_credits(films, appearances, seed)
+    phase5 = generate_phase5(characters, seed)
 
     assert verify_simpsons_paradox(films), "Simpson's paradox trap failed — tune generation coefficients"
     assert verify_survivorship_gap(characters, appearances), "survivorship trap failed"
-    assert verify_leaky_column(appearances), "leaky column trap failed"
+    assert verify_leaky_column(appearances, phase5["appearances"]), "leaky column trap failed"
 
     public = os.path.join(output_dir, "public")
     _write_csv(os.path.join(public, "films.csv"), films,
@@ -684,7 +716,6 @@ def build_dataset(seed, output_dir):
     _write_csv(os.path.join(public, "roster.csv"), characters,
         ["name", "faction", "powered"])
 
-    phase5 = generate_phase5(characters, seed)
     private = os.path.join(output_dir, "private")
     os.makedirs(private, exist_ok=True)
     with open(os.path.join(private, "answer_key.json"), "w") as f:
