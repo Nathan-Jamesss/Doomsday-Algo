@@ -18,12 +18,12 @@
     <div class="panel">
       <h2>Get the dataset</h2>
       <p>Earth-4471 Archive — Phases 1–4. Opens directly in Excel, or load with Python/SQL/R.</p>
-      <a href="../dataset/generator_output/public/films.csv" download>films.csv</a> ·
-      <a href="../dataset/generator_output/public/characters.csv" download>characters.csv</a> ·
-      <a href="../dataset/generator_output/public/appearances.csv" download>appearances.csv</a> ·
-      <a href="../dataset/generator_output/public/co_appearances.csv" download>co_appearances.csv</a> ·
-      <a href="../dataset/generator_output/public/post_credits.csv" download>post_credits.csv</a> ·
-      <a href="../dataset/generator_output/public/roster.csv" download>roster.csv</a>
+      <a href="../dataset/generator/output/public/films.csv" download>films.csv</a> ·
+      <a href="../dataset/generator/output/public/characters.csv" download>characters.csv</a> ·
+      <a href="../dataset/generator/output/public/appearances.csv" download>appearances.csv</a> ·
+      <a href="../dataset/generator/output/public/co_appearances.csv" download>co_appearances.csv</a> ·
+      <a href="../dataset/generator/output/public/post_credits.csv" download>post_credits.csv</a> ·
+      <a href="../dataset/generator/output/public/roster.csv" download>roster.csv</a>
     </div>
     <div class="panel" style="margin-top:1.5rem;">
       <h2>Round 2 closes in</h2>
@@ -31,16 +31,17 @@
     </div>
   </main>
   <script>
-    const round2CloseISO = "2026-09-11T14:15:00+05:30";
-    const target = new Date(round2CloseISO).getTime();
-    const el = document.getElementById('countdown');
-    setInterval(() => {
-      const diff = Math.max(0, target - Date.now());
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      el.textContent = `${h}h ${m}m ${s}s`;
-    }, 1000);
+    fetch('config/event.json').then(r => r.json()).then(cfg => {
+      const target = new Date(cfg.round2CloseISO).getTime();
+      const el = document.getElementById('countdown');
+      setInterval(() => {
+        const diff = Math.max(0, target - Date.now());
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        el.textContent = `${h}h ${m}m ${s}s`;
+      }, 1000);
+    });
   </script>
 </body>
 </html>
