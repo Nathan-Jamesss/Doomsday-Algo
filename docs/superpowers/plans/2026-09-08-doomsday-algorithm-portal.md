@@ -1804,7 +1804,7 @@ const firebaseConfig = {
 
 - [ ] **Step 4: Manual verification**
 
-Run: `cd portal/dataset/generator && python build.py --seed 42 --out ../generator_output` then move/symlink output into `portal/public/dataset_output` so the download links resolve, or adjust the `href`s above to match wherever Task 4's output lands. Use the browse skill: `$B goto file://<abs path>/portal/public/index.html`, `$B click` each download link, `$B is visible "#countdown"`, confirm the timer ticks.
+Run: `cd portal/dataset/generator && python build.py --seed 42` (uses the CLI's own default `--out ./output`, which is exactly what the hrefs above already point at via `../dataset/generator/output/public/*.csv` relative to `portal/public/index.html` — do not pass a different `--out` value, and do not edit the hrefs to chase a non-default build location). Use the browse skill: `$B goto file://<abs path>/portal/public/index.html`, `$B click` each download link, `$B is visible "#countdown"`, confirm the timer ticks. Note: `fetch('config/event.json')` in the countdown script will fail under a bare `file://` URL in some browsers due to CORS — if that blocks local verification, serve the `portal/public/` directory over a local static server instead (e.g. `python -m http.server` from `portal/public/`) rather than changing the countdown code to hardcode the ISO string; the shipped code must still fetch `config/event.json` so the close time is editable without a redeploy, per this task's own Interfaces requirement.
 
 - [ ] **Step 5: Commit**
 
