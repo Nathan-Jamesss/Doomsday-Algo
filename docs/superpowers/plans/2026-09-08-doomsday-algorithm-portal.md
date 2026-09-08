@@ -36,8 +36,8 @@
 
 **Interfaces:**
 - Produces: `generate_films(seed: int) -> list[dict]` — each dict has keys `name, phase, year, budget_m, opening_weekend_m, worldwide_gross_m, critic_score, audience_score`.
-- Produces: `generate_characters(seed: int) -> list[dict]` — each dict has keys `name, faction, first_film, powered, centrality` (centrality is a hidden 0–1 float used later, not shipped to participants).
-- Produces: `ROSTER_SIZE = 60`, `FILMS_PER_PHASE = 7`, `PHASE_COUNT = 4` (Phases 1–4 only; Phase 5 handled in Task 3).
+- Produces: `generate_characters(seed: int) -> list[dict]` — each dict has keys `name, faction, first_film, powered, centrality, future_debut` (centrality is a hidden 0–1 float used later, not shipped to participants; `future_debut` is `True` for a fixed, deterministic subset of 10 characters reserved to never appear in Phases 1–4 — this is what makes the survivorship-bias trap structural rather than probabilistic, since a cast size of 10 drawn from up to 60 characters across 28 films would otherwise cover nearly all 60 by chance).
+- Produces: `ROSTER_SIZE = 60`, `FILMS_PER_PHASE = 7`, `PHASE_COUNT = 4`, `FUTURE_DEBUT_COUNT = 10` (Phases 1–4 only; Phase 5 handled in Task 3).
 
 - [ ] **Step 1: Write the failing test for character/film generation shape**
 
@@ -60,6 +60,13 @@ class TestEntityGeneration(unittest.TestCase):
             self.assertIn(c["faction"], {"Avengers", "X-Men", "Cosmic", "Villains", "Other"})
             self.assertTrue(0.0 <= c["centrality"] <= 1.0)
             self.assertIn(c["powered"], (True, False))
+            self.assertIn(c["future_debut"], (True, False))
+
+    def test_exactly_ten_characters_are_reserved_for_future_debut(self):
+        from entities import FUTURE_DEBUT_COUNT
+        chars = generate_characters(seed=42)
+        reserved = [c for c in chars if c["future_debut"]]
+        self.assertEqual(len(reserved), FUTURE_DEBUT_COUNT)
 
     def test_generation_is_deterministic_for_same_seed(self):
         self.assertEqual(generate_films(seed=7), generate_films(seed=7))
@@ -111,6 +118,7 @@ from model import build_rng, FACTIONS, REAL_CHARACTER_NAMES
 ROSTER_SIZE = 60
 FILMS_PER_PHASE = 7
 PHASE_COUNT = 4
+FUTURE_DEBUT_COUNT = 10
 
 FILM_TITLES = [f"Earth-4471 Chronicle {i+1}" for i in range(FILMS_PER_PHASE * PHASE_COUNT)]
 
@@ -146,8 +154,10 @@ def generate_films(seed):
 
 def generate_characters(seed):
     rng = build_rng(seed)
+    names = list(REAL_CHARACTER_NAMES[:ROSTER_SIZE])
+    reserved = set(rng.sample(names, FUTURE_DEBUT_COUNT))
     chars = []
-    for name in REAL_CHARACTER_NAMES[:ROSTER_SIZE]:
+    for name in names:
         faction = rng.choice(FACTIONS)
         chars.append({
             "name": name,
@@ -155,6 +165,7 @@ def generate_characters(seed):
             "first_film": None,  # filled in Task 2 once appearances are generated
             "powered": rng.random() > 0.35,
             "centrality": round(rng.random(), 3),
+            "future_debut": name in reserved,
         })
     return chars
 ```
@@ -205,6 +216,12 @@ class TestAppearances(unittest.TestCase):
             for key in ("character", "film", "screentime_min", "dialogue_lines",
                         "billing_order", "final_billing_position", "survived"):
                 self.assertIn(key, a)
+
+    def test_future_debut_characters_never_appear_in_phases_1_to_4(self):
+        apps = generate_appearances(self.films, self.characters, seed=42)
+        appeared_names = {a["character"] for a in apps}
+        reserved_names = {c["name"] for c in self.characters if c["future_debut"]}
+        self.assertEqual(appeared_names & reserved_names, set())
 
     def test_dead_characters_do_not_reappear_in_later_films(self):
         apps = generate_appearances(self.films, self.characters, seed=42)
@@ -263,7 +280,11 @@ def generate_appearances(films, characters, seed):
     appearances = []
     films_sorted = sorted(films, key=lambda f: (f["phase"], f["name"]))
     for film in films_sorted:
-        pool = [c for c in characters if alive[c["name"]]]
+        # future_debut characters are structurally reserved out of Phases 1-4
+        # casting — this is what guarantees the survivorship-bias trap holds,
+        # rather than leaving it to chance whether every character gets cast
+        # at least once across 28 films.
+        pool = [c for c in characters if alive[c["name"]] and not c["future_debut"]]
         rng.shuffle(pool)
         cast = pool[:CAST_SIZE_PER_FILM]
         # billing order by centrality (higher centrality = better billing = lower number)
@@ -351,7 +372,7 @@ git commit -m "feat: generate appearances, co-appearances, post-credits for Phas
 
 **Interfaces:**
 - Consumes: `generate_films`, `generate_characters`, `generate_appearances` from Tasks 1–2.
-- Produces: `generate_phase5(characters, seed) -> dict` with keys `films` (7 hidden films, no `final_billing_position` field on any row), `appearances`, `co_appearances`. This is the answer key — never written to the participant-facing CSV bundle (enforced in Task 5).
+- Produces: `generate_phase5(characters, seed) -> dict` with keys `films` (7 hidden films, no `final_billing_position` field on any row), `appearances`, `co_appearances`, and `characterOutcomes` — a `{character_name: {survived, topThirdScreentime, hadTeamUp}}` map derived from the same `appearances`/`co_appearances` data, one entry per character who appears anywhere in Phase 5. This is the answer key — never written to the participant-facing CSV bundle (enforced in Task 5). `characterOutcomes` is consumed directly by Task 9's `revealPhase5` Cloud Function for draft scoring — its three fields must match `draftCharacterScore`'s `outcome` parameter shape from Task 6 exactly.
 - Produces: `verify_simpsons_paradox(films) -> bool`, `verify_survivorship_gap(characters, appearances) -> bool`, `verify_leaky_column(appearances) -> bool` — used both by tests here and as a build-time gate in Task 5's CLI.
 
 - [ ] **Step 1: Write the failing test**
@@ -388,6 +409,15 @@ class TestTraps(unittest.TestCase):
         p5b = generate_phase5(self.characters, seed=99)
         self.assertEqual(len(p5a["films"]), 7)
         self.assertEqual(p5a, p5b)
+
+    def test_character_outcomes_shape_matches_draft_scoring_contract(self):
+        p5 = generate_phase5(self.characters, seed=42)
+        appeared = {a["character"] for a in p5["appearances"]}
+        self.assertEqual(set(p5["characterOutcomes"].keys()), appeared)
+        for outcome in p5["characterOutcomes"].values():
+            self.assertIn("survived", outcome)
+            self.assertIn("topThirdScreentime", outcome)
+            self.assertIn("hadTeamUp", outcome)
 
 if __name__ == "__main__":
     unittest.main()
@@ -488,7 +518,37 @@ def generate_phase5(characters, seed):
                         "film": film, "shared_scenes": rng.randint(1, 6),
                     })
 
-    return {"films": films, "appearances": appearances, "co_appearances": co_appearances}
+    # Build the per-character outcome map that Task 9's revealPhase5 Cloud
+    # Function feeds directly into Task 6's draftCharacterScore.
+    screentime_by_film = {}
+    for a in appearances:
+        screentime_by_film.setdefault(a["film"], []).append((a["character"], a["screentime_min"]))
+    top_third_characters = set()
+    for film, entries in screentime_by_film.items():
+        entries_sorted = sorted(entries, key=lambda e: -e[1])
+        cutoff = max(1, len(entries_sorted) // 3)
+        top_third_characters.update(name for name, _ in entries_sorted[:cutoff])
+
+    teamed_up_characters = set()
+    for row in co_appearances:
+        teamed_up_characters.add(row["character_a"])
+        teamed_up_characters.add(row["character_b"])
+
+    character_outcomes = {}
+    for a in appearances:
+        name = a["character"]
+        character_outcomes[name] = {
+            "survived": a["survived"],
+            "topThirdScreentime": name in top_third_characters,
+            "hadTeamUp": name in teamed_up_characters,
+        }
+
+    return {
+        "films": films,
+        "appearances": appearances,
+        "co_appearances": co_appearances,
+        "characterOutcomes": character_outcomes,
+    }
 ```
 
 - [ ] **Step 4: Run test to verify it passes**
@@ -543,6 +603,7 @@ class TestBuild(unittest.TestCase):
             key = json.load(f)
         self.assertEqual(len(key["films"]), 7)
         self.assertGreater(len(key["appearances"]), 0)
+        self.assertGreater(len(key["characterOutcomes"]), 0)
 
     def test_all_six_public_files_exist(self):
         build_dataset(seed=42, output_dir=self.tmp)
@@ -858,10 +919,11 @@ git commit -m "feat: draft scoring and weighted leaderboard combination with tie
 **Interfaces:**
 - Produces: Firestore collections contract used by every later task —
   - `questions/{questionId}` — public read, no write from clients. Fields: `text, type (yesno|multichoice), options?`.
-  - `submissions/{teamId}_{questionId}` — client can `create` only their own team's doc, cannot `read` others', cannot `update`/`delete`. Fields: `teamId, questionId, probabilities, submittedAt`.
-  - `leaderboard/{teamId}` — public read, write only from Cloud Functions (admin SDK bypasses rules; no client write rule exists).
+  - `submissions/{teamId}_{questionId}` — client can `create` a doc whose ID matches `{teamId}_{questionId}` from its own fields, cannot `read` (any doc — including other teams'), cannot `update`/`delete`. Fields: `teamId, questionId, probabilities, submittedAt`. **No Firebase Authentication exists anywhere in this plan** (team identity is a self-chosen string, honor-system for a single-room supervised 4-hour event, not an adversarial-identity threat model) — the rule therefore validates document-ID/field consistency and immutability, not `request.auth`. This is a deliberate scope decision, not an oversight: the spec's actual security concern (§10) is the answer key never leaking, not preventing one team from typing another team's name.
+  - `leaderboard/{teamId}` — public read, write only from Cloud Functions (admin SDK bypasses rules; no client write rule exists, matching the pattern used for `predictRaw` and `draftRaw` — `reportRaw` is written the same way by the `onJudgeScoreCreate` trigger in Task 9, not by `judge.js` directly).
   - `answer_key` — **no client read or write rule at all** (default-deny). Only the Cloud Functions admin SDK can touch it.
   - `draft_picks/{characterId}` — public read; client `create` allowed only if the doc doesn't already exist (enforces "first pick wins", full validation happens in the Cloud Function in Task 9).
+  - `judge_scores/{judgeId}_{reportId}` — client can `create` only, cannot `read`/`update`/`delete` (mirrors `submissions` — write-once, no client aggregation). `onJudgeScoreCreate` (Task 9) reads across a report's judge scores and writes the averaged `reportRaw` into `leaderboard`.
   - `reveal_state/status` — public read; no client write (admin-only, flips when Phase 5 unlocks).
 
 - [ ] **Step 1: Write the rules (no automated test — Firestore rules are verified via the emulator in Task 8's manual step)**
@@ -897,8 +959,9 @@ service cloud.firestore {
       allow write: if false;
     }
     match /submissions/{submissionId} {
-      allow create: if request.resource.data.teamId == request.auth.uid
-                    && submissionId == request.resource.data.teamId + '_' + request.resource.data.questionId;
+      allow create: if submissionId == request.resource.data.teamId + '_' + request.resource.data.questionId
+                    && request.resource.data.teamId is string
+                    && request.resource.data.questionId is string;
       allow read, update, delete: if false;
     }
     match /leaderboard/{teamId} {
@@ -912,6 +975,10 @@ service cloud.firestore {
       allow read: if true;
       allow create: if !exists(/databases/$(database)/documents/draft_picks/$(characterId));
       allow update, delete: if false;
+    }
+    match /judge_scores/{scoreId} {
+      allow create: if scoreId == request.resource.data.judgeId + '_' + request.resource.data.reportId;
+      allow read, update, delete: if false;
     }
     match /reveal_state/{doc} {
       allow read: if true;
@@ -1092,18 +1159,21 @@ Run: `cd portal && firebase emulators:start --only firestore,functions` (require
 
 ---
 
-### Task 9: Cloud Functions — submitDraftPick and revealPhase5
+### Task 9: Cloud Functions — submitDraftPick, judge-score aggregation, and revealPhase5
 
 **Files:**
 - Create: `portal/functions/draftPick.js`
 - Create: `portal/functions/revealPhase5.js`
+- Create: `portal/functions/judgeScore.js`
 - Modify: `portal/functions/index.js`
 - Test: `portal/functions/test_draftPick_logic.js`
+- Test: `portal/functions/test_judgeScore_logic.js`
 
 **Interfaces:**
 - Consumes: `draftCharacterScore` from `portal/shared/draftScoring.js` (Task 6).
 - Produces: `computeDraftAssignment(existingPicks, requestedCharacterId, teamId) -> { allowed: bool, reason?: string }` — pure function; the Cloud Function wraps it in a Firestore transaction for atomicity.
 - Produces: callable Cloud Function `revealPhase5` — admin-only (checks a custom claim `isAdmin`), copies the private `answer_key` outcomes needed for draft scoring into `leaderboard/{teamId}.draftRaw` for every team with picks, and flips `reveal_state/status.revealed = true`.
+- Produces: `computeAggregateReportScore(scoresForReport: {total: number}[]) -> number` — averages every judge's total for one report (rounded to 2 decimals); the Firestore trigger `onJudgeScoreCreate` wraps it, re-querying all `judge_scores` for that `reportId` on every new score and writing the average into `leaderboard/{teamId}.reportRaw`. This exists because Task 15's `judge.js` can only `create` in `judge_scores` (Task 7's rules forbid client writes to `leaderboard`), so aggregation must happen server-side.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1130,10 +1200,29 @@ test('a team cannot pick the same character twice under their own id (idempotent
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+```javascript
+// portal/functions/test_judgeScore_logic.js
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { computeAggregateReportScore } = require('./judgeScore.js');
 
-Run: `cd portal/functions && node --test test_draftPick_logic.js`
-Expected: FAIL with `Cannot find module './draftPick.js'`
+test('a single judge score is the average of one', () => {
+  assert.equal(computeAggregateReportScore([{ total: 80 }]), 80);
+});
+
+test('two judges average to the midpoint', () => {
+  assert.equal(computeAggregateReportScore([{ total: 80 }, { total: 90 }]), 85);
+});
+
+test('rounds to 2 decimal places', () => {
+  assert.equal(computeAggregateReportScore([{ total: 70 }, { total: 71 }, { total: 71 }]), 70.67);
+});
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `cd portal/functions && node --test test_draftPick_logic.js test_judgeScore_logic.js`
+Expected: FAIL — `./draftPick.js` and `./judgeScore.js` don't exist yet.
 
 - [ ] **Step 3: Write minimal implementation**
 
@@ -1180,14 +1269,18 @@ const revealPhase5 = functions.https.onCall(async (data, context) => {
   const picksSnap = await db.collection('draft_picks').get();
   const picksByTeam = {};
   picksSnap.forEach(doc => {
-    const { teamId } = doc.data();
+    const { teamId, characterName } = doc.data();
     picksByTeam[teamId] = picksByTeam[teamId] || [];
-    picksByTeam[teamId].push(doc.id);
+    // characterOutcomes in the answer key is keyed by the real character
+    // name (e.g. "Shuri"), not the slugified draft_picks doc ID (e.g.
+    // "shuri") — the pick doc must carry characterName for this lookup
+    // to resolve. See Task 13's draft.js, which writes both fields.
+    picksByTeam[teamId].push(characterName);
   });
 
   const batch = db.batch();
-  for (const [teamId, characterIds] of Object.entries(picksByTeam)) {
-    const outcomes = characterIds.map(id => answerKey.characterOutcomes[id] || {
+  for (const [teamId, characterNames] of Object.entries(picksByTeam)) {
+    const outcomes = characterNames.map(name => answerKey.characterOutcomes[name] || {
       survived: false, topThirdScreentime: false, hadTeamUp: false,
     });
     const draftRaw = draftTeamScore(outcomes);
@@ -1201,10 +1294,35 @@ const revealPhase5 = functions.https.onCall(async (data, context) => {
 module.exports = { revealPhase5 };
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+```javascript
+// portal/functions/judgeScore.js
+const functions = require('firebase-functions');
+const admin = require('firebase-admin');
 
-Run: `cd portal/functions && node --test test_draftPick_logic.js`
-Expected: PASS (3 tests)
+function computeAggregateReportScore(scoresForReport) {
+  const sum = scoresForReport.reduce((acc, s) => acc + s.total, 0);
+  return Math.round((sum / scoresForReport.length) * 100) / 100;
+}
+
+const onJudgeScoreCreate = functions.firestore
+  .document('judge_scores/{scoreId}')
+  .onCreate(async (snap) => {
+    const { reportId, teamId } = snap.data();
+    const db = admin.firestore();
+    const scoresSnap = await db.collection('judge_scores').where('reportId', '==', reportId).get();
+    const scores = [];
+    scoresSnap.forEach(doc => scores.push(doc.data()));
+    const reportRaw = computeAggregateReportScore(scores);
+    await db.collection('leaderboard').doc(teamId).set({ reportRaw }, { merge: true });
+  });
+
+module.exports = { computeAggregateReportScore, onJudgeScoreCreate };
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `cd portal/functions && node --test test_draftPick_logic.js test_judgeScore_logic.js`
+Expected: PASS (6 tests)
 
 - [ ] **Step 5: Wire into index.js and commit**
 
@@ -1216,18 +1334,20 @@ admin.initializeApp();
 const { onSubmissionCreate } = require('./submitPrediction.js');
 const { onDraftPickCreate } = require('./draftPick.js');
 const { revealPhase5 } = require('./revealPhase5.js');
+const { onJudgeScoreCreate } = require('./judgeScore.js');
 
 exports.onSubmissionCreate = onSubmissionCreate;
 exports.onDraftPickCreate = onDraftPickCreate;
 exports.revealPhase5 = revealPhase5;
+exports.onJudgeScoreCreate = onJudgeScoreCreate;
 ```
 
 ```bash
-git add portal/functions/draftPick.js portal/functions/revealPhase5.js portal/functions/index.js portal/functions/test_draftPick_logic.js
-git commit -m "feat: draft pick contention handling and admin-only Phase 5 reveal"
+git add portal/functions/draftPick.js portal/functions/revealPhase5.js portal/functions/judgeScore.js portal/functions/index.js portal/functions/test_draftPick_logic.js portal/functions/test_judgeScore_logic.js
+git commit -m "feat: draft pick contention handling, judge-score aggregation, admin-only Phase 5 reveal"
 ```
 
-**Note:** `answerKey.characterOutcomes` is produced by extending Task 3's `generate_phase5` to also emit a `characterOutcomes` map (`{characterId: {survived, topThirdScreentime, hadTeamUp}}`) alongside `films`/`appearances`/`co_appearances`, and Task 4's `build.py` includes it in `answer_key.json`. Add this as a follow-up sub-step to Task 3/4 if not already present when this task starts.
+**Also update Firestore indexes:** `judge_scores` is queried by `reportId` (not just fetched by doc ID) in `onJudgeScoreCreate` — Firestore auto-creates single-field indexes, so `portal/firestore.indexes.json` from Task 7 needs no manual entry for this query, but confirm during manual verification that the emulator doesn't report a missing-index error; if it does, add the composite index it suggests to `firestore.indexes.json`.
 
 ---
 
@@ -1646,7 +1766,10 @@ function renderBoard(takenMap) {
       const btn = document.createElement('button');
       btn.textContent = 'Draft';
       btn.addEventListener('click', () => {
-        db.collection('draft_picks').doc(id).set({ teamId, characterId: id, pickedAt: Date.now() })
+        // characterName (the real name, e.g. "Shuri") travels alongside the
+        // slugified doc ID because Task 9's revealPhase5 looks up draft
+        // outcomes in the answer key by real name, not by slug.
+        db.collection('draft_picks').doc(id).set({ teamId, characterId: id, characterName: name, pickedAt: Date.now() })
           .catch(() => alert('Someone just took this character.'));
       });
       card.appendChild(btn);
@@ -1881,10 +2004,13 @@ function renderCurrent() {
       totals[box.dataset.cat] += Number(box.dataset.pts);
     });
     const total = Object.values(totals).reduce((a, b) => a + b, 0);
+    // Firestore rules (Task 7) forbid any client write to `leaderboard` —
+    // this collection only accepts create, and the onJudgeScoreCreate
+    // trigger (Task 9) reads every judge_scores doc for this reportId and
+    // writes the averaged reportRaw into leaderboard server-side.
     db.collection('judge_scores').doc(`${judgeId}_${report.id}`).set({
       judgeId, reportId: report.id, teamId: report.teamId, totals, total, judgedAt: Date.now(),
     });
-    db.collection('leaderboard').doc(report.teamId).set({ reportRaw: total }, { merge: true });
     currentIndex++;
     renderCurrent();
   });
@@ -1893,7 +2019,7 @@ function renderCurrent() {
 
 - [ ] **Step 4: Manual verification**
 
-With 2–3 seeded `reports` docs in the emulator, use the browse skill: `$B goto file://<abs>/portal/public/judge.html`, enter a judge ID, `$B snapshot -i` to find checkbox refs, tick a few, submit, confirm it advances to "Report #2 of 3" and that `leaderboard/{teamId}.reportRaw` updates in the emulator UI.
+With 2–3 seeded `reports` docs and the Cloud Functions emulator running (so `onJudgeScoreCreate` from Task 9 fires), use the browse skill: `$B goto file://<abs>/portal/public/judge.html`, enter a judge ID, `$B snapshot -i` to find checkbox refs, tick a few, submit, confirm it advances to "Report #2 of 3" and that `leaderboard/{teamId}.reportRaw` updates in the emulator UI shortly after (via the trigger, not a direct client write).
 
 - [ ] **Step 5: Commit**
 
@@ -1995,3 +2121,5 @@ git commit -m "feat: projector leaderboard combining all three rounds with revea
 **Type consistency:** `brierScore(p, actualYes)` signature is identical in Task 5's implementation, Task 8's `computeSubmissionScore`, and Task 8's test. `draftCharacterScore(outcome)` / `draftTeamScore(characterOutcomes)` signatures match across Task 6 and Task 9's `revealPhase5.js`. `combineLeaderboard(predictPct, draftPct, reportPct)` and `rankTeams(teams)` match across Task 6 and Task 16's `admin.js`.
 
 **Known gap flagged, not silently dropped:** round-open/close enforcement (submissions rejected outside the 0:45–2:15 window, draft picks rejected outside 2:30–3:00) is not implemented in this plan — Firestore rules and Cloud Functions here allow submission at any time. This is a real gap for the live event and should be a fast-follow task once this plan ships, using the `reveal_state`/round-flag pattern already established in Task 9.
+
+**Preflight fixes applied 2026-09-08 (see controller ledger for full rulings):** the version of this plan actually executed differs from the first draft in five places, all corrected before Task 1 was dispatched — (1) Task 1/2's survivorship-bias trap was probabilistic, not structural, and would very likely fail (`future_debut` field added, 10 characters structurally reserved out of Phases 1–4); (2) Task 9's `revealPhase5` depended on an `answerKey.characterOutcomes` map that no task produced (added to Task 3's `generate_phase5` and Task 4's build/test); (3) Task 7's `submissions` rule required `request.auth.uid` with no Authentication task anywhere in the plan, which would reject every real client write (rule rewritten to validate document shape instead, on the recorded judgment that team-identity spoofing is out of this spec's threat model); (4) Task 15's `judge.js` wrote directly to `leaderboard`, which Task 7's own rules forbid from clients (added `onJudgeScoreCreate` trigger in Task 9, added a matching `judge_scores` rule, removed the direct write); (5) the draft-outcome lookup in `revealPhase5` keyed by the slugified `draft_picks` doc ID against a `characterOutcomes` map keyed by real character name — an always-miss (Task 13's `draft.js` now also writes `characterName`, and the lookup uses that field).
