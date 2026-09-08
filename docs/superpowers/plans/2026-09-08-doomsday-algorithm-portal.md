@@ -1822,7 +1822,7 @@ git commit -m "feat: landing page with dataset downloads and live countdown"
 - Create: `portal/public/predict.js`
 
 **Interfaces:**
-- Consumes: `scoring.js` (Task 5, loaded client-side for instant local preview only — the authoritative score always comes from the Cloud Function in Task 8), Firestore `questions` and `leaderboard` collections (Task 7).
+- Consumes: Firestore `questions` and `leaderboard` collections (Task 7). The authoritative score always comes from the Cloud Function in Task 8 — this page does not load `scoring.js` client-side (it's a CommonJS module with `module.exports`, not directly usable from a plain `<script>` tag without a bundler, and a client-side preview isn't required by the spec).
 - Produces: a form rendering each question from `questions`, a probability input (0–100) per option, a submit button that writes to `submissions/{teamId}_{questionId}`, and a live-updating leaderboard table subscribed via `onSnapshot`.
 
 - [ ] **Step 1–2: N/A — this task is DOM/Firestore wiring; scoring math itself is already unit-tested in Task 5**
@@ -1892,6 +1892,38 @@ function loadQuestions() {
       const div = document.createElement('div');
       div.className = 'panel';
       div.style.marginBottom = '1rem';
+
+      // 3 of 18 Round 2 questions are multichoice (Task 4) — Task 8's
+      // multiChoiceScore reads probabilities[correctOption] by the real
+      // option string, so this must render one input per option, not the
+      // yesno slider (which would always score multichoice questions as 0).
+      if (q.type === 'multichoice') {
+        const evenSplit = Math.round(100 / q.options.length);
+        div.innerHTML = `
+          <p>${q.text}</p>
+          ${q.options.map(o => `<label>${o}: <input type="number" min="0" max="100" value="${evenSplit}" class="opt-input" data-option="${o}" style="width:4rem;"></label>%`).join(' ')}
+          <span id="sum-${doc.id}"></span>
+          <button id="submit-${doc.id}">Submit</button>
+        `;
+        container.appendChild(div);
+        const inputs = div.querySelectorAll('.opt-input');
+        const sumSpan = div.querySelector(`#sum-${doc.id}`);
+        const updateSum = () => {
+          const total = Array.from(inputs).reduce((s, i) => s + Number(i.value || 0), 0);
+          sumSpan.textContent = `Total: ${total}%`;
+        };
+        inputs.forEach(i => i.addEventListener('input', updateSum));
+        updateSum();
+        div.querySelector(`#submit-${doc.id}`).addEventListener('click', () => {
+          const probabilities = {};
+          inputs.forEach(i => { probabilities[i.dataset.option] = Number(i.value || 0); });
+          db.collection('submissions').doc(`${teamId}_${doc.id}`).set({
+            teamId, questionId: doc.id, probabilities, submittedAt: Date.now(),
+          });
+        });
+        return;
+      }
+
       div.innerHTML = `
         <p>${q.text}</p>
         <input type="range" min="0" max="100" value="50" id="range-${doc.id}">
@@ -1982,6 +2014,8 @@ git commit -m "feat: predict page with live probability submission and leaderboa
 
 ```javascript
 // portal/public/draft.js
+renderBanner();
+renderNav('draft');
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const teamId = localStorage.getItem('doomsday_team_id') || prompt('Team ID:');
@@ -2087,6 +2121,8 @@ git commit -m "feat: live draft board with real-time pick sync and countdown tim
 
 ```javascript
 // portal/public/report.js
+renderBanner();
+renderNav('report');
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const teamId = localStorage.getItem('doomsday_team_id');
@@ -2180,6 +2216,7 @@ git commit -m "feat: report page auto-filled from team's boldest Round 2 predict
 
 ```javascript
 // portal/public/judge.js
+renderBanner();
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -2314,6 +2351,7 @@ git commit -m "feat: blind judge queue with tick-box checklist matching official
 
 ```javascript
 // portal/public/admin.js
+renderBanner();
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const functions = firebase.functions();
