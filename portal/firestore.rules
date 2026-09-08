@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /submissions/{submissionId} {
+      allow create: if submissionId == request.resource.data.teamId + '_' + request.resource.data.questionId
+                    && request.resource.data.teamId is string
+                    && request.resource.data.questionId is string;
+      allow read, update, delete: if false;
+    }
+    match /leaderboard/{teamId} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /answer_key/{doc} {
+      allow read, write: if false;
+    }
+    match /draft_picks/{characterId} {
+      allow read: if true;
+      allow create: if !exists(/databases/$(database)/documents/draft_picks/$(characterId));
+      allow update, delete: if false;
+    }
+    match /judge_scores/{scoreId} {
+      allow create: if scoreId == request.resource.data.judgeId + '_' + request.resource.data.reportId;
+      allow read, update, delete: if false;
+    }
+    match /reveal_state/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
