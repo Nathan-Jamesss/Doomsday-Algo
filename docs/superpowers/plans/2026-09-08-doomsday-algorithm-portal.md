@@ -1352,13 +1352,22 @@ const onSubmissionCreate = functions.firestore
 
     const question = { id: submission.questionId, ...questionDoc.data() };
     const answerKey = answerKeyDoc.data();
+    // The answer_key doc can exist while still lacking an entry for this
+    // specific question (partial seeding) — no-op rather than crash the
+    // trigger, matching the doc-level existence guard above.
+    if (!answerKey[question.id]) return;
     const points = computeSubmissionScore(question, submission, answerKey);
 
     const leaderboardRef = db.collection('leaderboard').doc(submission.teamId);
     await db.runTransaction(async (tx) => {
       const doc = await tx.get(leaderboardRef);
       const current = doc.exists ? doc.data() : { predictRaw: 0, draftRaw: 0, reportRaw: 0 };
-      tx.set(leaderboardRef, { ...current, predictRaw: current.predictRaw + points }, { merge: true });
+      // leaderboard/{teamId} has multiple writers (this trigger writes
+      // predictRaw, Task 9's triggers write draftRaw/reportRaw) — if
+      // another trigger created the doc first with only its own field
+      // set, current.predictRaw is undefined here, and undefined + points
+      // would silently write NaN. Default to 0 explicitly.
+      tx.set(leaderboardRef, { ...current, predictRaw: (current.predictRaw || 0) + points }, { merge: true });
     });
   });
 
