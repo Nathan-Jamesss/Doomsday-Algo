@@ -675,6 +675,21 @@ class TestQuestions(unittest.TestCase):
         self.assertEqual(q1, q2)
         self.assertEqual(a1, a2)
 
+    def test_multichoice_options_are_never_duplicated(self):
+        # Phase 5 has 7 films, so the same two characters can co-appear in
+        # more than one — without deduping by partner name, a multichoice
+        # question's options could silently repeat the same visible choice.
+        # Sweep a range of seeds since this bug only manifests for some.
+        for seed in range(1, 60):
+            films = generate_films(seed=seed)
+            characters = generate_characters(seed=seed)
+            phase5 = generate_phase5(characters, seed=seed)
+            questions, _ = generate_questions_and_answers(phase5, seed=seed)
+            for q in questions:
+                if q["type"] == "multichoice":
+                    self.assertEqual(len(q["options"]), len(set(q["options"])),
+                        f"seed={seed} question={q['id']} has duplicate options: {q['options']}")
+
 if __name__ == "__main__":
     unittest.main()
 ```
@@ -723,18 +738,24 @@ def generate_questions_and_answers(phase5, seed):
             "text": f"Will {name} appear in a team-up (2+ shared scenes) in Phase 5?"})
         answers[qid] = {"actualYes": outcomes[name]["hadTeamUp"]}
 
+    # Deduped by partner name (summing shared_scenes across every Phase 5
+    # film that pair co-appears in) — Phase 5 has 7 films, so the same two
+    # characters can share scenes in more than one of them. Without dedup,
+    # `options` could list the same character twice, producing a degenerate
+    # multichoice question where a visible choice is silently repeated.
     co_by_char = {}
     for row in phase5["co_appearances"]:
-        co_by_char.setdefault(row["character_a"], []).append((row["character_b"], row["shared_scenes"]))
-        co_by_char.setdefault(row["character_b"], []).append((row["character_a"], row["shared_scenes"]))
-    partner_candidates = [n for n in names if len(co_by_char.get(n, [])) >= 2]
+        for a, b in ((row["character_a"], row["character_b"]), (row["character_b"], row["character_a"])):
+            partners = co_by_char.setdefault(a, {})
+            partners[b] = partners.get(b, 0) + row["shared_scenes"]
+    partner_candidates = [n for n in names if len(co_by_char.get(n, {})) >= 2]
     rng.shuffle(partner_candidates)
     made = 0
     for name in partner_candidates:
         if made >= PARTNER_COUNT:
             break
-        partners = sorted(co_by_char[name], key=lambda p: -p[1])
-        options = [p[0] for p in partners[:4]]
+        ranked = sorted(co_by_char[name].items(), key=lambda p: -p[1])
+        options = [partner for partner, _ in ranked[:4]]
         if len(options) < 2:
             continue
         qid = new_id()
@@ -767,7 +788,7 @@ def generate_questions_and_answers(phase5, seed):
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd portal/dataset/generator && python -m unittest test_questions -v`
-Expected: PASS (3 tests)
+Expected: PASS (4 tests)
 
 - [ ] **Step 5: Write the failing test for the CLI/build**
 
