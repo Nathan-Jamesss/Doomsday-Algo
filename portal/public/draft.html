@@ -1,0 +1,22 @@
+<!-- portal/public/draft.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Draft — Doomsday Algorithm</title>
+  <link rel="stylesheet" href="shared/theme.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="shared/firebaseConfig.js"></script>
+</head>
+<body>
+  <script src="shared/banner.js"></script>
+  <script src="shared/nav.js"></script>
+  <main style="max-width:1100px;margin:2rem auto;padding:0 1.5rem;">
+    <h1 class="accent-red">Round 3 — Draft</h1>
+    <div id="timer" style="font-size:1.5rem;font-weight:700;"></div>
+    <div id="board" style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-top:1rem;"></div>
+  </main>
+  <script src="draft.js"></script>
+</body>
+</html>
