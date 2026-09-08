@@ -2,7 +2,11 @@ const admin = require('firebase-admin');
 admin.initializeApp();
 
 const { onSubmissionCreate } = require('./submitPrediction.js');
+const { onDraftPickCreate } = require('./draftPick.js');
+const { revealPhase5 } = require('./revealPhase5.js');
+const { onJudgeScoreCreate } = require('./judgeScore.js');
 
-// Filled in by Task 8 (submitPrediction, submitDraftPick) and
-// Task 9 (revealPhase5).
 exports.onSubmissionCreate = onSubmissionCreate;
+exports.onDraftPickCreate = onDraftPickCreate;
+exports.revealPhase5 = revealPhase5;
+exports.onJudgeScoreCreate = onJudgeScoreCreate;
