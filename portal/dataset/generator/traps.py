@@ -24,5 +24,7 @@ def verify_survivorship_gap(characters, appearances):
     roster_names = {c["name"] for c in characters}
     return len(roster_names) > len(appeared_names)
 
-def verify_leaky_column(appearances):
-    return all("final_billing_position" in a for a in appearances) and len(appearances) > 0
+def verify_leaky_column(appearances, phase5_appearances):
+    present_in_history = all("final_billing_position" in a for a in appearances) and len(appearances) > 0
+    absent_in_future = all("final_billing_position" not in a for a in phase5_appearances)
+    return present_in_history and absent_in_future

@@ -18,23 +18,34 @@ def generate_phase5(characters, seed):
             "audience_score": None,
         })
 
-    pool = list(characters)
-    rng.shuffle(pool)
+    # Alive-state tracking across Phase 5's own 7 films, mirroring Task 2's
+    # generate_appearances exactly — without this, a character sampled
+    # independently per film can die in an earlier Phase 5 film and be cast
+    # normally (possibly "surviving") in a later one, producing two
+    # contradictory outcomes for the same character in characterOutcomes.
+    # Phase 5's films list is already in strict chronological order (built
+    # by a single sequential range loop above, no re-sort needed).
+    alive = {c["name"]: True for c in characters}
     appearances = []
     for film in films:
-        cast = rng.sample(pool, min(CAST_SIZE_PER_FILM, len(pool)))
+        pool = [c for c in characters if alive[c["name"]]]
+        rng.shuffle(pool)
+        cast = pool[:min(CAST_SIZE_PER_FILM, len(pool))]
         cast_sorted = sorted(cast, key=lambda c: -c["centrality"])
         for order, c in enumerate(cast_sorted, start=1):
             base_screentime = 30 * (c["centrality"] + 0.2)
             screentime = round(max(1.0, base_screentime + rng.uniform(-5, 5)), 1)
             hazard = 0.12 * (1 - c["centrality"])
+            survived = rng.random() > hazard
+            if not survived:
+                alive[c["name"]] = False
             appearances.append({
                 "character": c["name"],
                 "film": film["name"],
                 "screentime_min": screentime,
                 "dialogue_lines": int(max(0, screentime * rng.uniform(2.0, 4.0))),
                 "billing_order": order,
-                "survived": rng.random() > hazard,
+                "survived": survived,
                 # deliberately no "final_billing_position" — cannot exist
                 # for a film that hasn't released in the fiction yet.
             })
@@ -68,6 +79,10 @@ def generate_phase5(characters, seed):
         teamed_up_characters.add(row["character_a"])
         teamed_up_characters.add(row["character_b"])
 
+    # Safe to overwrite on each pass now that death is permanent above: a
+    # character with survived=False in one film is excluded from every
+    # later film's pool, so their last (and only ever "final") appearance
+    # is always the correct source of truth for their outcome.
     character_outcomes = {}
     for a in appearances:
         name = a["character"]
