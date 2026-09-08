@@ -33,18 +33,24 @@ def generate_questions_and_answers(phase5, seed):
             "text": f"Will {name} appear in a team-up (2+ shared scenes) in Phase 5?"})
         answers[qid] = {"actualYes": outcomes[name]["hadTeamUp"]}
 
+    # Deduped by partner name (summing shared_scenes across every Phase 5
+    # film that pair co-appears in) — Phase 5 has 7 films, so the same two
+    # characters can share scenes in more than one of them. Without dedup,
+    # `options` could list the same character twice, producing a degenerate
+    # multichoice question where a visible choice is silently repeated.
     co_by_char = {}
     for row in phase5["co_appearances"]:
-        co_by_char.setdefault(row["character_a"], []).append((row["character_b"], row["shared_scenes"]))
-        co_by_char.setdefault(row["character_b"], []).append((row["character_a"], row["shared_scenes"]))
-    partner_candidates = [n for n in names if len(co_by_char.get(n, [])) >= 2]
+        for a, b in ((row["character_a"], row["character_b"]), (row["character_b"], row["character_a"])):
+            partners = co_by_char.setdefault(a, {})
+            partners[b] = partners.get(b, 0) + row["shared_scenes"]
+    partner_candidates = [n for n in names if len(co_by_char.get(n, {})) >= 2]
     rng.shuffle(partner_candidates)
     made = 0
     for name in partner_candidates:
         if made >= PARTNER_COUNT:
             break
-        partners = sorted(co_by_char[name], key=lambda p: -p[1])
-        options = [p[0] for p in partners[:4]]
+        ranked = sorted(co_by_char[name].items(), key=lambda p: -p[1])
+        options = [partner for partner, _ in ranked[:4]]
         if len(options) < 2:
             continue
         qid = new_id()

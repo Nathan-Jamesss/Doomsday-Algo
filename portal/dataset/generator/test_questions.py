@@ -35,5 +35,20 @@ class TestQuestions(unittest.TestCase):
         self.assertEqual(q1, q2)
         self.assertEqual(a1, a2)
 
+    def test_multichoice_options_are_never_duplicated(self):
+        # Phase 5 has 7 films, so the same two characters can co-appear in
+        # more than one — without deduping by partner name, a multichoice
+        # question's options could silently repeat the same visible choice.
+        # Sweep a range of seeds since this bug only manifests for some.
+        for seed in range(1, 60):
+            films = generate_films(seed=seed)
+            characters = generate_characters(seed=seed)
+            phase5 = generate_phase5(characters, seed=seed)
+            questions, _ = generate_questions_and_answers(phase5, seed=seed)
+            for q in questions:
+                if q["type"] == "multichoice":
+                    self.assertEqual(len(q["options"]), len(set(q["options"])),
+                        f"seed={seed} question={q['id']} has duplicate options: {q['options']}")
+
 if __name__ == "__main__":
     unittest.main()
