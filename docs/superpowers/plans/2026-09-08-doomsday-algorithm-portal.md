@@ -194,7 +194,7 @@ git commit -m "feat: dataset generator core entities (films, characters)"
 - Consumes: `generate_films(seed)`, `generate_characters(seed)` from Task 1.
 - Produces: `generate_appearances(films, characters, seed) -> list[dict]` — keys `character, film, screentime_min, dialogue_lines, billing_order, final_billing_position, survived`.
 - Produces: `generate_co_appearances(appearances, seed) -> list[dict]` — keys `character_a, character_b, film, shared_scenes`.
-- Produces: `generate_post_credits(films, characters, seed) -> list[dict]` — keys `film, character_teased, paid_off_in_film`.
+- Produces: `generate_post_credits(films, appearances, seed) -> list[dict]` — keys `film, character_teased, paid_off_in_film`. Takes `appearances` (not `characters`) so `character_teased` is always drawn from the real cast of `paid_off_in_film` — a tease that no one in that film's cast can pay off would be a lie the data can never make good on.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -225,15 +225,14 @@ class TestAppearances(unittest.TestCase):
 
     def test_dead_characters_do_not_reappear_in_later_films(self):
         apps = generate_appearances(self.films, self.characters, seed=42)
-        film_order = {f["name"]: (f["phase"], i) for i, f in enumerate(self.films)}
-        death_film_index = {}
-        for a in sorted(apps, key=lambda x: film_order[x["film"]][1]):
-            idx = film_order[a["film"]][1]
-            if a["character"] in death_film_index:
-                self.assertGreater(idx, death_film_index[a["character"]],
-                    f"{a['character']} appears after their death")
+        film_order = {f["name"]: i for i, f in enumerate(self.films)}
+        apps_sorted = sorted(apps, key=lambda a: film_order[a["film"]])
+        dead = set()
+        for a in apps_sorted:
+            self.assertNotIn(a["character"], dead,
+                f"{a['character']} appears in {a['film']} after already being marked dead")
             if not a["survived"]:
-                death_film_index.setdefault(a["character"], idx)
+                dead.add(a["character"])
 
     def test_co_appearances_only_reference_shared_films(self):
         apps = generate_appearances(self.films, self.characters, seed=42)
@@ -248,10 +247,17 @@ class TestAppearances(unittest.TestCase):
     def test_post_credits_reference_real_films(self):
         apps = generate_appearances(self.films, self.characters, seed=42)
         film_names = {f["name"] for f in self.films}
-        pc = generate_post_credits(self.films, self.characters, seed=42)
+        pc = generate_post_credits(self.films, apps, seed=42)
+        cast_by_film = {}
+        for a in apps:
+            cast_by_film.setdefault(a["film"], set()).add(a["character"])
         for row in pc:
             self.assertIn(row["film"], film_names)
             self.assertIn(row["paid_off_in_film"], film_names)
+            # the teased character must actually be cast in the film that
+            # pays it off — otherwise the tease is a lie the data itself
+            # can never make good on
+            self.assertIn(row["character_teased"], cast_by_film[row["paid_off_in_film"]])
 
 if __name__ == "__main__":
     unittest.main()
@@ -266,19 +272,27 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'appearances'`
 
 ```python
 # portal/dataset/generator/appearances.py
+import re
 from model import build_rng
 
 CAST_SIZE_PER_FILM = 10
 
+def _chronological_key(film):
+    # Film names are "Earth-4471 Chronicle {N}" — sorting by (phase, name)
+    # string-sorts "Chronicle 10" before "Chronicle 8" within a phase,
+    # scrambling release order and letting characters who die in a later-
+    # processed-but-earlier-released film "come back to life" in an
+    # earlier-processed-but-later-released one. Sort by the numeric suffix
+    # instead so processing order matches true chronological order.
+    match = re.search(r'(\d+)$', film["name"])
+    return (film["phase"], int(match.group(1)) if match else 0)
+
 def generate_appearances(films, characters, seed):
     rng = build_rng(seed)
     alive = {c["name"]: True for c in characters}
-    by_faction = {}
-    for c in characters:
-        by_faction.setdefault(c["faction"], []).append(c)
 
     appearances = []
-    films_sorted = sorted(films, key=lambda f: (f["phase"], f["name"]))
+    films_sorted = sorted(films, key=_chronological_key)
     for film in films_sorted:
         # future_debut characters are structurally reserved out of Phases 1-4
         # casting — this is what guarantees the survivorship-bias trap holds,
@@ -331,20 +345,28 @@ def generate_co_appearances(appearances, seed):
                     })
     return rows
 
-def generate_post_credits(films, characters, seed):
+def generate_post_credits(films, appearances, seed):
     rng = build_rng(seed)
-    films_sorted = sorted(films, key=lambda f: (f["phase"], f["name"]))
+    films_sorted = sorted(films, key=_chronological_key)
+    cast_by_film = {}
+    for a in appearances:
+        cast_by_film.setdefault(a["film"], []).append(a["character"])
+
     rows = []
     for i, film in enumerate(films_sorted[:-1]):
         later_films = films_sorted[i + 1:i + 4] or films_sorted[i + 1:]
-        if not later_films:
+        # Only a film whose cast is known can be a truthful payoff — the
+        # teased character must actually appear in it, so we pick both
+        # from that film's real cast, never from the full roster.
+        candidates = [f for f in later_films if cast_by_film.get(f["name"])]
+        if not candidates:
             continue
-        teased = rng.choice(characters)["name"]
-        payoff = rng.choice(later_films)["name"]
+        payoff_film = rng.choice(candidates)
+        teased = rng.choice(cast_by_film[payoff_film["name"]])
         rows.append({
             "film": film["name"],
             "character_teased": teased,
-            "paid_off_in_film": payoff,
+            "paid_off_in_film": payoff_film["name"],
         })
     return rows
 ```
@@ -352,7 +374,7 @@ def generate_post_credits(films, characters, seed):
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `cd portal/dataset/generator && python -m unittest test_appearances -v`
-Expected: PASS (4 tests)
+Expected: PASS (5 tests)
 
 - [ ] **Step 5: Commit**
 
@@ -642,7 +664,7 @@ def build_dataset(seed, output_dir):
     characters = generate_characters(seed)
     appearances = generate_appearances(films, characters, seed)
     co_appearances = generate_co_appearances(appearances, seed)
-    post_credits = generate_post_credits(films, characters, seed)
+    post_credits = generate_post_credits(films, appearances, seed)
 
     assert verify_simpsons_paradox(films), "Simpson's paradox trap failed — tune generation coefficients"
     assert verify_survivorship_gap(characters, appearances), "survivorship trap failed"
