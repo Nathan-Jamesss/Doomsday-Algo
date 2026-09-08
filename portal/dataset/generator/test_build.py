@@ -15,13 +15,26 @@ class TestBuild(unittest.TestCase):
         phases = {row["phase"] for row in rows}
         self.assertEqual(phases, {"1", "2", "3", "4"})
 
-    def test_private_answer_key_has_phase5(self):
+    def test_private_answer_key_has_phase5_and_resolved_questions(self):
         build_dataset(seed=42, output_dir=self.tmp)
         with open(os.path.join(self.tmp, "private", "answer_key.json")) as f:
             key = json.load(f)
         self.assertEqual(len(key["films"]), 7)
         self.assertGreater(len(key["appearances"]), 0)
         self.assertGreater(len(key["characterOutcomes"]), 0)
+        with open(os.path.join(self.tmp, "public", "questions.json")) as f:
+            questions = json.load(f)
+        self.assertGreaterEqual(len(questions), 15)
+        for q in questions:
+            self.assertIn(q["id"], key)  # resolved answer flat-merged into answer_key.json
+
+    def test_public_questions_file_has_no_answers(self):
+        build_dataset(seed=42, output_dir=self.tmp)
+        with open(os.path.join(self.tmp, "public", "questions.json")) as f:
+            questions = json.load(f)
+        for q in questions:
+            self.assertNotIn("actualYes", q)
+            self.assertNotIn("correctOption", q)
 
     def test_all_six_public_files_exist(self):
         build_dataset(seed=42, output_dir=self.tmp)

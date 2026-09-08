@@ -2,6 +2,7 @@ import argparse, csv, json, os
 from entities import generate_films, generate_characters
 from appearances import generate_appearances, generate_co_appearances, generate_post_credits
 from phase5 import generate_phase5
+from questions import generate_questions_and_answers
 from traps import verify_simpsons_paradox, verify_survivorship_gap, verify_leaky_column
 
 def _write_csv(path, rows, fields):
@@ -18,6 +19,7 @@ def build_dataset(seed, output_dir):
     co_appearances = generate_co_appearances(appearances, seed)
     post_credits = generate_post_credits(films, appearances, seed)
     phase5 = generate_phase5(characters, seed)
+    questions, question_answers = generate_questions_and_answers(phase5, seed)
 
     assert verify_simpsons_paradox(films), "Simpson's paradox trap failed — tune generation coefficients"
     assert verify_survivorship_gap(characters, appearances), "survivorship trap failed"
@@ -36,11 +38,15 @@ def build_dataset(seed, output_dir):
         ["film", "character_teased", "paid_off_in_film"])
     _write_csv(os.path.join(public, "roster.csv"), characters,
         ["name", "faction", "powered"])
+    with open(os.path.join(public, "questions.json"), "w") as f:
+        json.dump(questions, f, indent=2)
 
     private = os.path.join(output_dir, "private")
     os.makedirs(private, exist_ok=True)
+    answer_key = dict(phase5)
+    answer_key.update(question_answers)  # flat-merge: q1, q2, ... alongside films/appearances/etc.
     with open(os.path.join(private, "answer_key.json"), "w") as f:
-        json.dump(phase5, f, indent=2)
+        json.dump(answer_key, f, indent=2)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
