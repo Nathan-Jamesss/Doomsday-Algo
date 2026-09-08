@@ -1,16 +1,22 @@
+import re
 from model import build_rng
 
 CAST_SIZE_PER_FILM = 10
 
+def _chronological_key(film):
+    """Extract numeric film number from name for proper chronological sorting."""
+    match = re.search(r'(\d+)$', film["name"])
+    if match:
+        number = int(match.group(1))
+        return (film["phase"], number)
+    return (film["phase"], film["name"])
+
 def generate_appearances(films, characters, seed):
     rng = build_rng(seed)
     alive = {c["name"]: True for c in characters}
-    by_faction = {}
-    for c in characters:
-        by_faction.setdefault(c["faction"], []).append(c)
 
     appearances = []
-    films_sorted = sorted(films, key=lambda f: (f["phase"], f["name"]))
+    films_sorted = sorted(films, key=_chronological_key)
     for film in films_sorted:
         # future_debut characters are structurally reserved out of Phases 1-4
         # casting — this is what guarantees the survivorship-bias trap holds,
@@ -63,19 +69,26 @@ def generate_co_appearances(appearances, seed):
                     })
     return rows
 
-def generate_post_credits(films, characters, seed):
+def generate_post_credits(films, appearances, seed):
     rng = build_rng(seed)
-    films_sorted = sorted(films, key=lambda f: (f["phase"], f["name"]))
+    cast_by_film = {}
+    for a in appearances:
+        cast_by_film.setdefault(a["film"], []).append(a["character"])
+
+    films_sorted = sorted(films, key=_chronological_key)
     rows = []
     for i, film in enumerate(films_sorted[:-1]):
         later_films = films_sorted[i + 1:i + 4] or films_sorted[i + 1:]
         if not later_films:
             continue
-        teased = rng.choice(characters)["name"]
-        payoff = rng.choice(later_films)["name"]
-        rows.append({
-            "film": film["name"],
-            "character_teased": teased,
-            "paid_off_in_film": payoff,
-        })
+        # Pick payoff film, then pick teased character from that film's cast
+        payoff_film = rng.choice(later_films)
+        payoff_name = payoff_film["name"]
+        if payoff_name in cast_by_film:
+            teased = rng.choice(cast_by_film[payoff_name])
+            rows.append({
+                "film": film["name"],
+                "character_teased": teased,
+                "paid_off_in_film": payoff_name,
+            })
     return rows

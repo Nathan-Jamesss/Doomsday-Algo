@@ -1,4 +1,5 @@
 import unittest
+import re
 from entities import generate_films, generate_characters
 from appearances import generate_appearances, generate_co_appearances, generate_post_credits
 
@@ -23,15 +24,20 @@ class TestAppearances(unittest.TestCase):
 
     def test_dead_characters_do_not_reappear_in_later_films(self):
         apps = generate_appearances(self.films, self.characters, seed=42)
-        film_order = {f["name"]: (f["phase"], i) for i, f in enumerate(self.films)}
-        death_film_index = {}
-        for a in sorted(apps, key=lambda x: film_order[x["film"]][1]):
-            idx = film_order[a["film"]][1]
-            if a["character"] in death_film_index:
-                self.assertGreater(idx, death_film_index[a["character"]],
-                    f"{a['character']} appears after their death")
+        def film_chronological_order(f):
+            match = re.search(r'(\d+)$', f["name"])
+            if match:
+                number = int(match.group(1))
+                return (f["phase"], number)
+            return (f["phase"], f["name"])
+        films_sorted = sorted(self.films, key=film_chronological_order)
+        film_indices = {f["name"]: i for i, f in enumerate(films_sorted)}
+        dead = set()
+        for a in sorted(apps, key=lambda x: film_indices[x["film"]]):
+            self.assertNotIn(a["character"], dead,
+                f"{a['character']} appears after their death")
             if not a["survived"]:
-                death_film_index.setdefault(a["character"], idx)
+                dead.add(a["character"])
 
     def test_co_appearances_only_reference_shared_films(self):
         apps = generate_appearances(self.films, self.characters, seed=42)
@@ -46,10 +52,14 @@ class TestAppearances(unittest.TestCase):
     def test_post_credits_reference_real_films(self):
         apps = generate_appearances(self.films, self.characters, seed=42)
         film_names = {f["name"] for f in self.films}
-        pc = generate_post_credits(self.films, self.characters, seed=42)
+        cast_by_film = {}
+        for a in apps:
+            cast_by_film.setdefault(a["film"], set()).add(a["character"])
+        pc = generate_post_credits(self.films, apps, seed=42)
         for row in pc:
             self.assertIn(row["film"], film_names)
             self.assertIn(row["paid_off_in_film"], film_names)
+            self.assertIn(row["character_teased"], cast_by_film[row["paid_off_in_film"]])
 
 if __name__ == "__main__":
     unittest.main()
