@@ -618,18 +618,158 @@ git commit -m "feat: generate hidden Phase 5 holdout and verify the three plante
 
 ---
 
-### Task 4: CLI to emit the participant CSV bundle + private answer key
+### Task 4: Round 2 question generation + CLI to emit the participant bundle and private answer key
+
+**Why this task grew:** the original draft of this task only wired together Tasks 1–3's raw data. But nothing anywhere in this plan actually defines the ~15–20 concrete Round 2 prediction questions the spec requires (spec §6: "~15–20 locked questions about hidden Phase 5"), nor resolves them into the per-question format Task 8's grading Cloud Function expects to read (`answerKey[question.id].actualYes` / `.correctOption`). That gap was caught by the Task 4 implementer's own self-review, not invented after the fact — this is a real missing deliverable, not scope creep. `build.py` is the natural owner: it already assembles the answer key from the same raw Phase 5 data these questions resolve against.
 
 **Files:**
+- Create: `portal/dataset/generator/questions.py`
 - Create: `portal/dataset/generator/build.py`
+- Test: `portal/dataset/generator/test_questions.py`
 - Test: `portal/dataset/generator/test_build.py`
 
 **Interfaces:**
-- Consumes: everything from Tasks 1–3.
-- Produces: `build_dataset(seed, output_dir)` — writes `films.csv, characters.csv, appearances.csv, co_appearances.csv, post_credits.csv, roster.csv` (Phases 1–4 only) to `output_dir/public/`, and `answer_key.json` (Phase 5 films/appearances/co_appearances plus per-question resolved answers) to `output_dir/private/`.
+- Consumes: everything from Tasks 1–3, specifically `phase5["characterOutcomes"]`, `phase5["co_appearances"]`, and `phase5["appearances"]`.
+- Produces: `generate_questions_and_answers(phase5, seed) -> (questions: list[dict], answers: dict)`. Each question dict has `id, type ("yesno"|"multichoice"), text`, plus `options: list[str]` for multichoice. `answers` is `{questionId: {"actualYes": bool}}` for yesno or `{questionId: {"correctOption": str}}` for multichoice — this exact shape is what Task 8's `computeSubmissionScore` reads directly via `answerKey[question.id]`. Generates 4 question types across 18 total questions: 8 survival yes/no (from `characterOutcomes[name]["survived"]`), 4 team-up yes/no (from `characterOutcomes[name]["hadTeamUp"]`), 3 "who shares the most scenes with X" multichoice (from `co_appearances` shared-scene counts), 3 screentime-comparison yes/no (from summed `appearances` screentime per character). All deterministic per seed.
+- Produces: `build_dataset(seed, output_dir)` — writes `films.csv, characters.csv, appearances.csv, co_appearances.csv, post_credits.csv, roster.csv` (Phases 1–4 only) and `questions.json` (question text/type/options — **no answers**) to `output_dir/public/`, and `answer_key.json` (Phase 5 films/appearances/co_appearances/characterOutcomes, flat-merged with each question's resolved answer under its own `questionId` key) to `output_dir/private/`.
 - Produces: CLI entry point `python build.py --seed 42 --out ./output`.
 
-- [ ] **Step 1: Write the failing test**
+- [ ] **Step 1: Write the failing test for question generation**
+
+```python
+# portal/dataset/generator/test_questions.py
+import unittest
+from entities import generate_films, generate_characters
+from appearances import generate_appearances
+from phase5 import generate_phase5
+from questions import generate_questions_and_answers
+
+class TestQuestions(unittest.TestCase):
+    def setUp(self):
+        films = generate_films(seed=42)
+        characters = generate_characters(seed=42)
+        generate_appearances(films, characters, seed=42)  # not used directly; phase5 is self-contained
+        self.phase5 = generate_phase5(characters, seed=42)
+
+    def test_generates_at_least_15_questions_each_with_an_answer(self):
+        questions, answers = generate_questions_and_answers(self.phase5, seed=42)
+        self.assertGreaterEqual(len(questions), 15)
+        self.assertEqual(len(questions), len(answers))
+
+    def test_every_question_id_has_a_correctly_shaped_answer(self):
+        questions, answers = generate_questions_and_answers(self.phase5, seed=42)
+        for q in questions:
+            self.assertIn(q["id"], answers)
+            if q["type"] == "yesno":
+                self.assertIn("actualYes", answers[q["id"]])
+                self.assertIsInstance(answers[q["id"]]["actualYes"], bool)
+            else:
+                self.assertEqual(q["type"], "multichoice")
+                self.assertIn("options", q)
+                self.assertIn("correctOption", answers[q["id"]])
+                self.assertIn(answers[q["id"]]["correctOption"], q["options"])
+
+    def test_deterministic_for_same_seed(self):
+        q1, a1 = generate_questions_and_answers(self.phase5, seed=42)
+        q2, a2 = generate_questions_and_answers(self.phase5, seed=42)
+        self.assertEqual(q1, q2)
+        self.assertEqual(a1, a2)
+
+if __name__ == "__main__":
+    unittest.main()
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `cd portal/dataset/generator && python -m unittest test_questions -v`
+Expected: FAIL with `ModuleNotFoundError: No module named 'questions'`
+
+- [ ] **Step 3: Write the question-generation implementation**
+
+```python
+# portal/dataset/generator/questions.py
+from model import build_rng
+
+SURVIVAL_COUNT = 8
+TEAMUP_COUNT = 4
+PARTNER_COUNT = 3
+SCREENTIME_COUNT = 3
+
+def generate_questions_and_answers(phase5, seed):
+    rng = build_rng(seed + 9000)
+    outcomes = phase5["characterOutcomes"]
+    names = sorted(outcomes.keys())
+    rng.shuffle(names)
+
+    questions = []
+    answers = {}
+    next_id = 1
+
+    def new_id():
+        nonlocal next_id
+        qid = f"q{next_id}"
+        next_id += 1
+        return qid
+
+    for name in names[:SURVIVAL_COUNT]:
+        qid = new_id()
+        questions.append({"id": qid, "type": "yesno", "text": f"Will {name} survive Phase 5?"})
+        answers[qid] = {"actualYes": outcomes[name]["survived"]}
+
+    teamup_pool = names[SURVIVAL_COUNT:SURVIVAL_COUNT + TEAMUP_COUNT]
+    for name in teamup_pool:
+        qid = new_id()
+        questions.append({"id": qid, "type": "yesno",
+            "text": f"Will {name} appear in a team-up (2+ shared scenes) in Phase 5?"})
+        answers[qid] = {"actualYes": outcomes[name]["hadTeamUp"]}
+
+    co_by_char = {}
+    for row in phase5["co_appearances"]:
+        co_by_char.setdefault(row["character_a"], []).append((row["character_b"], row["shared_scenes"]))
+        co_by_char.setdefault(row["character_b"], []).append((row["character_a"], row["shared_scenes"]))
+    partner_candidates = [n for n in names if len(co_by_char.get(n, [])) >= 2]
+    rng.shuffle(partner_candidates)
+    made = 0
+    for name in partner_candidates:
+        if made >= PARTNER_COUNT:
+            break
+        partners = sorted(co_by_char[name], key=lambda p: -p[1])
+        options = [p[0] for p in partners[:4]]
+        if len(options) < 2:
+            continue
+        qid = new_id()
+        questions.append({"id": qid, "type": "multichoice", "options": options,
+            "text": f"Which character does {name} share the most scenes with in Phase 5?"})
+        answers[qid] = {"correctOption": options[0]}
+        made += 1
+
+    screentime_by_char = {}
+    for a in phase5["appearances"]:
+        screentime_by_char[a["character"]] = screentime_by_char.get(a["character"], 0) + a["screentime_min"]
+    pairable = [n for n in names if n in screentime_by_char]
+    rng.shuffle(pairable)
+    made = 0
+    i = 0
+    while made < SCREENTIME_COUNT and i + 1 < len(pairable):
+        a_name, b_name = pairable[i], pairable[i + 1]
+        i += 2
+        if screentime_by_char[a_name] == screentime_by_char[b_name]:
+            continue
+        qid = new_id()
+        questions.append({"id": qid, "type": "yesno",
+            "text": f"Will {a_name} have more total screentime than {b_name} in Phase 5?"})
+        answers[qid] = {"actualYes": screentime_by_char[a_name] > screentime_by_char[b_name]}
+        made += 1
+
+    return questions, answers
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `cd portal/dataset/generator && python -m unittest test_questions -v`
+Expected: PASS (3 tests)
+
+- [ ] **Step 5: Write the failing test for the CLI/build**
 
 ```python
 # portal/dataset/generator/test_build.py
@@ -650,13 +790,26 @@ class TestBuild(unittest.TestCase):
         phases = {row["phase"] for row in rows}
         self.assertEqual(phases, {"1", "2", "3", "4"})
 
-    def test_private_answer_key_has_phase5(self):
+    def test_private_answer_key_has_phase5_and_resolved_questions(self):
         build_dataset(seed=42, output_dir=self.tmp)
         with open(os.path.join(self.tmp, "private", "answer_key.json")) as f:
             key = json.load(f)
         self.assertEqual(len(key["films"]), 7)
         self.assertGreater(len(key["appearances"]), 0)
         self.assertGreater(len(key["characterOutcomes"]), 0)
+        with open(os.path.join(self.tmp, "public", "questions.json")) as f:
+            questions = json.load(f)
+        self.assertGreaterEqual(len(questions), 15)
+        for q in questions:
+            self.assertIn(q["id"], key)  # resolved answer flat-merged into answer_key.json
+
+    def test_public_questions_file_has_no_answers(self):
+        build_dataset(seed=42, output_dir=self.tmp)
+        with open(os.path.join(self.tmp, "public", "questions.json")) as f:
+            questions = json.load(f)
+        for q in questions:
+            self.assertNotIn("actualYes", q)
+            self.assertNotIn("correctOption", q)
 
     def test_all_six_public_files_exist(self):
         build_dataset(seed=42, output_dir=self.tmp)
@@ -668,12 +821,12 @@ if __name__ == "__main__":
     unittest.main()
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [ ] **Step 6: Run test to verify it fails**
 
 Run: `cd portal/dataset/generator && python -m unittest test_build -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'build'`
 
-- [ ] **Step 3: Write minimal implementation**
+- [ ] **Step 7: Write the CLI implementation**
 
 ```python
 # portal/dataset/generator/build.py
@@ -681,6 +834,7 @@ import argparse, csv, json, os
 from entities import generate_films, generate_characters
 from appearances import generate_appearances, generate_co_appearances, generate_post_credits
 from phase5 import generate_phase5
+from questions import generate_questions_and_answers
 from traps import verify_simpsons_paradox, verify_survivorship_gap, verify_leaky_column
 
 def _write_csv(path, rows, fields):
@@ -697,6 +851,7 @@ def build_dataset(seed, output_dir):
     co_appearances = generate_co_appearances(appearances, seed)
     post_credits = generate_post_credits(films, appearances, seed)
     phase5 = generate_phase5(characters, seed)
+    questions, question_answers = generate_questions_and_answers(phase5, seed)
 
     assert verify_simpsons_paradox(films), "Simpson's paradox trap failed — tune generation coefficients"
     assert verify_survivorship_gap(characters, appearances), "survivorship trap failed"
@@ -715,11 +870,15 @@ def build_dataset(seed, output_dir):
         ["film", "character_teased", "paid_off_in_film"])
     _write_csv(os.path.join(public, "roster.csv"), characters,
         ["name", "faction", "powered"])
+    with open(os.path.join(public, "questions.json"), "w") as f:
+        json.dump(questions, f, indent=2)
 
     private = os.path.join(output_dir, "private")
     os.makedirs(private, exist_ok=True)
+    answer_key = dict(phase5)
+    answer_key.update(question_answers)  # flat-merge: q1, q2, ... alongside films/appearances/etc.
     with open(os.path.join(private, "answer_key.json"), "w") as f:
-        json.dump(phase5, f, indent=2)
+        json.dump(answer_key, f, indent=2)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -730,16 +889,16 @@ if __name__ == "__main__":
     print(f"Dataset written to {args.out}/public (participant files) and {args.out}/private (answer key — do not distribute)")
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 8: Run test to verify it passes**
 
 Run: `cd portal/dataset/generator && python -m unittest test_build -v`
-Expected: PASS (3 tests)
+Expected: PASS (4 tests)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
-git add portal/dataset/generator/build.py portal/dataset/generator/test_build.py
-git commit -m "feat: CLI to build participant dataset bundle and private answer key"
+git add portal/dataset/generator/questions.py portal/dataset/generator/build.py portal/dataset/generator/test_questions.py portal/dataset/generator/test_build.py
+git commit -m "feat: generate Round 2 prediction questions and resolved answers, wire into CLI build"
 ```
 
 ---
