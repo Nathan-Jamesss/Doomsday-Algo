@@ -1,0 +1,24 @@
+<!-- portal/public/judge.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Judge Queue — Doomsday Algorithm</title>
+  <link rel="stylesheet" href="shared/theme.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="shared/firebaseConfig.js"></script>
+</head>
+<body>
+  <script src="shared/banner.js"></script>
+  <main style="max-width:800px;margin:2rem auto;padding:0 1.5rem;">
+    <h1 class="accent-red">Judge Queue</h1>
+    <div id="judge-id-prompt" class="panel">
+      <label>Judge ID: <input id="judge-id-input"></label>
+      <button id="judge-id-save">Start</button>
+    </div>
+    <div id="report-view" style="display:none;"></div>
+  </main>
+  <script src="judge.js"></script>
+</body>
+</html>
