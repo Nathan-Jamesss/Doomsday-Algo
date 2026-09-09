@@ -21,6 +21,12 @@ function slugify(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = String(str == null ? '' : str);
+  return div.innerHTML;
+}
+
 function teamAlreadyHasPick(takenMap) {
   return Object.values(takenMap).some(pickedTeamId => pickedTeamId === teamId);
 }
@@ -35,7 +41,7 @@ function renderBoard(takenMap) {
     const card = document.createElement('div');
     card.className = 'panel';
     const taken = takenMap[id];
-    card.innerHTML = `<strong>${name}</strong><br>${taken ? `<span class="accent-red">Picked by ${taken}</span>` : ''}`;
+    card.innerHTML = `<strong>${escapeHtml(name)}</strong><br>${taken ? `<span class="accent-red">Picked by ${escapeHtml(taken)}</span>` : ''}`;
     if (!taken && !alreadyPicked) {
       const btn = document.createElement('button');
       btn.textContent = 'Draft';
@@ -43,8 +49,16 @@ function renderBoard(takenMap) {
         // characterName (the real name, e.g. "Shuri") travels alongside the
         // slugified doc ID because the reveal step looks up draft outcomes
         // in the answer key by real name, not by slug.
-        db.collection('draft_picks').doc(id).set({ teamId, characterId: id, characterName: name, pickedAt: Date.now() })
-          .catch(() => alert('Someone just took this character, or you already have a pick.'));
+        //
+        // Written as an atomic batch with draft_team_locks/{teamId}, not a
+        // single .set() -- Firestore's exists()-based rule only stopped a
+        // second team from taking this SAME character; nothing stopped one
+        // team from taking multiple characters via two tabs (caught in
+        // final review). The batch either fully succeeds or fully fails.
+        const batch = db.batch();
+        batch.set(db.collection('draft_picks').doc(id), { teamId, characterId: id, characterName: name, pickedAt: Date.now() });
+        batch.set(db.collection('draft_team_locks').doc(teamId), { teamId, characterId: id, pickedAt: Date.now() });
+        batch.commit().catch(() => alert('Someone just took this character, or you already have a pick.'));
       });
       card.appendChild(btn);
     } else if (!taken && alreadyPicked) {
@@ -68,8 +82,7 @@ db.collection('draft_picks').onSnapshot(snap => {
   renderBoard(takenMap);
 });
 
-let secondsLeft = 15;
-setInterval(() => {
-  secondsLeft = secondsLeft > 0 ? secondsLeft - 1 : 15;
-  document.getElementById('timer').textContent = `${secondsLeft}s`;
-}, 1000);
+// No countdown timer: this is a drop-in event with no shared clock, so a
+// per-team "turn timer" would be fiction (there are no turns). Scarcity
+// alone -- a character vanishing the instant anyone else picks it -- is
+// what creates the pressure to draft sooner rather than later.

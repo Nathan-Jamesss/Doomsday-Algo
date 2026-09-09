@@ -9,7 +9,15 @@ service cloud.firestore {
       allow create: if submissionId == request.resource.data.teamId + '_' + request.resource.data.questionId
                     && request.resource.data.teamId is string
                     && request.resource.data.questionId is string;
-      allow read, update, delete: if false;
+      // Public read (unlike leaderboard/answer_key): a raw submitted guess
+      // reveals nothing about whether it's correct, only what a team
+      // guessed -- it's not the C6 answer-extraction oracle (that was
+      // specifically about reading back a GRADED score, which correlates
+      // with truth). report.js needs to read a team's own submissions to
+      // build the Round 4 auto-fill; this app has no auth to scope that
+      // read to "own team only", so it's public like everything else here.
+      allow read: if true;
+      allow update, delete: if false;
     }
     // Fully private, same as answer_key — the live-during-Round-2 raw
     // predictRaw value is an answer-extraction oracle: a throwaway team ID
@@ -34,6 +42,18 @@ service cloud.firestore {
     match /draft_picks/{characterId} {
       allow read: if true;
       allow create: if !exists(/databases/$(database)/documents/draft_picks/$(characterId));
+      allow update, delete: if false;
+    }
+    // Enforces "1 exclusive pick per team" the same way draft_picks
+    // enforces "1 team per character" -- via exists(), not client logic
+    // alone. draft.js writes both docs in one batch; Firestore batched
+    // writes are atomic, so a team with two tabs open (or using devtools
+    // directly) can't win a race to grab a second character; either both
+    // writes land or neither does (caught in final review -- the
+    // 1-pick rule was enforced client-side only).
+    match /draft_team_locks/{teamId} {
+      allow read: if true;
+      allow create: if !exists(/databases/$(database)/documents/draft_team_locks/$(teamId));
       allow update, delete: if false;
     }
     match /judge_scores/{scoreId} {

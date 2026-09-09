@@ -15,7 +15,7 @@
 // event).
 
 const path = require('path');
-const { draftCharacterScore, draftTeamScore } = require('../shared/draftScoring.js');
+const { draftTeamScore } = require('../shared/draftScoring.js');
 const { combineLeaderboard, rankTeams } = require('../shared/leaderboard.js');
 
 async function revealPhase5(db) {

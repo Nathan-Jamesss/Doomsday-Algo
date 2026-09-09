@@ -2,6 +2,7 @@ node_modules/
 .superpowers/
 *.log
 portal/dataset/generator/output/
+portal/dataset/generator/private/
 portal/public/data/
 .worktrees/
 .gstack/

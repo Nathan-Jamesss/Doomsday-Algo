@@ -11,23 +11,34 @@
 // done. Firestore itself (database, rules, Hosting) stays on the free
 // Spark plan with no card needed at all.
 //
+// This is a drop-in event: students arrive and leave whenever, over an
+// extended window (the whole festival, potentially spanning both days),
+// not a synchronized single sitting. This script is designed to run
+// continuously for that entire window -- see the debouncing below, which
+// exists specifically so a long-running, bursty, unpredictable submission
+// pattern never comes close to Firestore's free-tier daily quota.
+//
 // Security note: this script authenticates with a service account key,
 // which -- exactly like a Cloud Function's Admin SDK access -- bypasses
 // Firestore security rules entirely. That's by design: firestore.rules
 // already denies all client access to `leaderboard` and `answer_key`;
-// only this script (or the Firebase Console) can read/write them. Moving
-// the runtime from Google's servers to this laptop changes nothing about
-// that trust boundary.
+// only this script (or the Firebase Console) can read/write them.
 //
 // Setup: see RUNBOOK.md. In short: `npm install` in this directory, put
 // a service account key (Firebase Console -> Project Settings -> Service
 // Accounts -> Generate new private key -- free, no billing) at
 // ./serviceAccountKey.json, then `npm start`. Leave the terminal window
-// open for the whole event.
+// open for the whole event window (both days, if that's how it's run).
 
 const path = require('path');
 const { brierScore, multiChoiceScore } = require('../shared/scoring.js');
 const { combineLeaderboard, rankTeams } = require('../shared/leaderboard.js');
+
+// How often to flush a burst of regrades/recomputes. This is what keeps
+// Firestore usage bounded regardless of submission rate: a burst of 100
+// submissions in one second still produces at most one regrade per
+// affected team and one public-leaderboard pass, not 100 of each.
+const FLUSH_INTERVAL_MS = 3000;
 
 function computeAggregateReportScore(scoresForReport) {
   const sum = scoresForReport.reduce((acc, s) => acc + s.total, 0);
@@ -52,9 +63,25 @@ function computeQuestionScore(question, submission, answerKey) {
   return null;
 }
 
-function startServer(db) {
+function startServer(db, options = {}) {
+  const flushIntervalMs = options.flushIntervalMs || FLUSH_INTERVAL_MS;
   let questionsCache = null;
   let answerKeyCache = null;
+
+  // In-memory mirror of `leaderboard`, populated once at startup and kept
+  // current as regrades happen -- this is what lets recomputePublic() run
+  // with ZERO extra Firestore reads per cycle instead of re-reading the
+  // whole collection every time (the bug caught in review: at 55 teams
+  // that was ~55 reads on every single submission, ~53,000 reads for
+  // Round 2 alone against a 50,000/day free cap).
+  const leaderboardMemory = {};
+  // Last {rank, total} actually written per team, so recomputePublic()
+  // only writes rows that changed -- most cycles touch 1-3 teams, not all
+  // of them.
+  const publicMemory = {};
+
+  const dirtyTeams = new Set();
+  let flushScheduled = false;
 
   async function loadStaticData() {
     const qSnap = await db.collection('questions').get();
@@ -63,15 +90,18 @@ function startServer(db) {
 
     const akDoc = await db.collection('answer_key').doc('phase5').get();
     answerKeyCache = akDoc.exists ? akDoc.data() : null;
+
+    const lbSnap = await db.collection('leaderboard').get();
+    lbSnap.forEach(doc => { leaderboardMemory[doc.id] = doc.data(); });
   }
 
-  // Recomputes a team's FULL predictRaw from scratch on every submission
-  // event, rather than incrementing. This is what correctly applies the
-  // spec's "a skipped question defaults to 75 points (the neutral 50%
-  // score), never worse than an honest shrug" rule: an unanswered
-  // question isn't just absent from a running sum, it must be explicitly
-  // credited at the neutral score, and a from-scratch recompute is also
-  // immune to any double-counting risk an incremental += could have.
+  // Recomputes a team's FULL predictRaw from scratch, rather than
+  // incrementing. This is what correctly applies the spec's "a skipped
+  // question defaults to 75 points (the neutral 50% score), never worse
+  // than an honest shrug" rule: an unanswered question isn't just absent
+  // from a running sum, it must be explicitly credited at the neutral
+  // score, and a from-scratch recompute is also immune to any
+  // double-counting risk an incremental += could have.
   async function regradeTeam(teamId) {
     if (!answerKeyCache || !questionsCache) return;
     const subsSnap = await db.collection('submissions').where('teamId', '==', teamId).get();
@@ -91,44 +121,10 @@ function startServer(db) {
       }
     }
 
-    await writeLeaderboard(teamId, { predictRaw, lastSubmittedAt });
-  }
-
-  async function writeLeaderboard(teamId, patch) {
-    const ref = db.collection('leaderboard').doc(teamId);
-    await db.runTransaction(async (tx) => {
-      const doc = await tx.get(ref);
-      const current = doc.exists ? doc.data() : { predictRaw: 0, draftRaw: 0, reportRaw: 0 };
-      tx.set(ref, { ...current, ...patch }, { merge: true });
-    });
-    await recomputePublicLeaderboard();
-  }
-
-  // `leaderboard` is fully private (Firestore rules deny all client
-  // access, same as answer_key) -- a raw per-round score is an
-  // answer-extraction oracle: a throwaway team submitting 100% on one
-  // question and reading its own predictRaw back instantly reveals that
-  // question's true/false. `leaderboard_public` exposes rank and the
-  // blended total ONLY, never a per-round breakdown, so it can't be used
-  // to isolate any single question's answer.
-  async function recomputePublicLeaderboard() {
-    const snap = await db.collection('leaderboard').get();
-    const questionCount = (questionsCache && questionsCache.length) || 18;
-    const teams = [];
-    snap.forEach(doc => {
-      const d = doc.data();
-      const predictPct = Math.min(100, (d.predictRaw || 0) / questionCount);
-      const draftPct = Math.min(100, ((d.draftRaw || 0) / 65) * 100); // 65 = max for 1 exclusive pick/team
-      const reportPct = d.reportRaw || 0;
-      const combined = combineLeaderboard(predictPct, draftPct, reportPct);
-      teams.push({ id: doc.id, ...combined, predictRaw: d.predictRaw || 0, submittedAt: d.lastSubmittedAt || 0 });
-    });
-    const ranked = rankTeams(teams);
-    const batch = db.batch();
-    ranked.forEach((t, i) => {
-      batch.set(db.collection('leaderboard_public').doc(t.id), { rank: i + 1, total: t.total });
-    });
-    if (ranked.length > 0) await batch.commit();
+    const current = leaderboardMemory[teamId] || { predictRaw: 0, draftRaw: 0, reportRaw: 0 };
+    const merged = { ...current, predictRaw, lastSubmittedAt };
+    leaderboardMemory[teamId] = merged;
+    await db.collection('leaderboard').doc(teamId).set(merged, { merge: true });
   }
 
   async function handleJudgeScore(reportId, teamId) {
@@ -137,17 +133,79 @@ function startServer(db) {
     scoresSnap.forEach(doc => scores.push(doc.data()));
     if (scores.length === 0) return;
     const reportRaw = computeAggregateReportScore(scores);
-    await writeLeaderboard(teamId, { reportRaw });
+    const current = leaderboardMemory[teamId] || { predictRaw: 0, draftRaw: 0, reportRaw: 0 };
+    const merged = { ...current, reportRaw };
+    leaderboardMemory[teamId] = merged;
+    await db.collection('leaderboard').doc(teamId).set(merged, { merge: true });
+  }
+
+  // `leaderboard` (raw per-round scores) is fully private -- a raw score
+  // is an answer-extraction oracle (submit 100% on a throwaway team, read
+  // the score back, repeat per question). `leaderboard_public` exposes
+  // rank + blended total ONLY, computed here from the in-memory mirror
+  // (no extra reads) and written only where the value actually changed
+  // (no wasted writes).
+  async function recomputePublic() {
+    const questionCount = (questionsCache && questionsCache.length) || 18;
+    const teams = Object.entries(leaderboardMemory).map(([id, d]) => {
+      const predictPct = Math.min(100, (d.predictRaw || 0) / questionCount);
+      const draftPct = Math.min(100, ((d.draftRaw || 0) / 65) * 100); // 65 = max for 1 exclusive pick/team
+      const reportPct = d.reportRaw || 0;
+      const combined = combineLeaderboard(predictPct, draftPct, reportPct);
+      return { id, ...combined, predictRaw: d.predictRaw || 0, submittedAt: d.lastSubmittedAt || 0 };
+    });
+    const ranked = rankTeams(teams);
+    const batch = db.batch();
+    let anyChange = false;
+    ranked.forEach((t, i) => {
+      const rank = i + 1;
+      const prev = publicMemory[t.id];
+      if (!prev || prev.rank !== rank || prev.total !== t.total) {
+        batch.set(db.collection('leaderboard_public').doc(t.id), { rank, total: t.total });
+        publicMemory[t.id] = { rank, total: t.total };
+        anyChange = true;
+      }
+    });
+    if (anyChange) await batch.commit();
+  }
+
+  // Marks a team as needing a regrade and schedules a single flush a few
+  // seconds out. Repeated calls within that window collapse into one
+  // flush -- this is what turns Firestore's initial onSnapshot replay
+  // (every existing submission fires as "added" the moment the listener
+  // attaches) from "one regrade per submission" into "one regrade per
+  // distinct team," and turns any real-world burst of simultaneous
+  // submissions into the same bounded cost.
+  function markDirty(teamId) {
+    dirtyTeams.add(teamId);
+    scheduleFlush();
+  }
+
+  function scheduleFlush() {
+    if (flushScheduled) return;
+    flushScheduled = true;
+    setTimeout(() => {
+      flushScheduled = false;
+      flush().catch(err => console.error('flush error', err));
+    }, flushIntervalMs);
+  }
+
+  async function flush() {
+    const teams = Array.from(dirtyTeams);
+    dirtyTeams.clear();
+    for (const teamId of teams) {
+      await regradeTeam(teamId).catch(err => console.error('regrade error for', teamId, err));
+    }
+    if (teams.length > 0) await recomputePublic();
   }
 
   return loadStaticData().then(() => {
-    console.log(`Loaded ${questionsCache.length} questions. Answer key: ${answerKeyCache ? 'present' : 'MISSING -- run seed.js before the event, grading will not work without it'}.`);
+    console.log(`Loaded ${questionsCache.length} questions, ${Object.keys(leaderboardMemory).length} existing leaderboard rows. Answer key: ${answerKeyCache ? 'present' : 'MISSING -- run seed.js before the event, grading will not work without it'}.`);
 
     db.collection('submissions').onSnapshot(snap => {
       snap.docChanges().forEach(change => {
         if (change.type === 'added') {
-          const { teamId } = change.doc.data();
-          regradeTeam(teamId).catch(err => console.error('regrade error for', teamId, err));
+          markDirty(change.doc.data().teamId);
         }
       });
     });
@@ -156,12 +214,14 @@ function startServer(db) {
       snap.docChanges().forEach(change => {
         if (change.type === 'added') {
           const { reportId, teamId } = change.doc.data();
-          handleJudgeScore(reportId, teamId).catch(err => console.error('judge score error for', reportId, err));
+          handleJudgeScore(reportId, teamId)
+            .then(() => recomputePublic())
+            .catch(err => console.error('judge score error for', reportId, err));
         }
       });
     });
 
-    console.log('Grading server running. Leave this window open for the duration of the event. Ctrl+C to stop.');
+    console.log('Grading server running. This is a drop-in event -- leave this window open for the entire event window (both days, if run that way). Ctrl+C to stop.');
   });
 }
 

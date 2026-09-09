@@ -15,7 +15,23 @@
   <main style="max-width:900px;margin:2rem auto;padding:0 1.5rem;">
     <h1 class="accent-red">DOOMSDAY <span class="accent-green">ALGORITHM</span></h1>
     <p>MCU Doomsday Prediction Challenge — Data Science Club, V-TAPP 2026</p>
+
+    <!-- No live host walks anyone through this (drop-in event, no fixed
+         start), so this page has to carry the whole briefing that would
+         normally be spoken aloud at a kickoff. -->
     <div class="panel">
+      <h2>How this works</h2>
+      <p><strong>Event window: 11:00 AM – 8:00 PM, September 11, 2026.</strong> Drop in anytime in that window — there's no fixed start, and no group moves through this together. Do these four things, in order, at your own pace (about 30–45 minutes total):</p>
+      <ol>
+        <li><strong>Download the dataset</strong> below and explore it (Excel, Python, SQL, R — whatever you've got).</li>
+        <li><strong>Predict</strong> — answer ~18 questions about the hidden "Phase 5" data with a probability, not a guess. Graded the instant you submit.</li>
+        <li><strong>Draft</strong> — pick 1 character. This is the one part with real urgency: whoever picks a character first gets it, and it's gone for everyone else the instant they do. Come early if you want more choice.</li>
+        <li><strong>Report</strong> — justify your 3 boldest Predict answers in a couple sentences each, then a judge scores it (also whenever they get to it).</li>
+      </ol>
+      <p>You can close this and come back later — your team ID (typed once, saved in your browser) picks up right where you left off. Predict and Report scores are final the moment they're graded. Draft scores post for everyone at once, later, after the organizers close the draft pool — that's the one thing that can't be scored per-team, since it depends on data nobody sees until then.</p>
+    </div>
+
+    <div class="panel" style="margin-top:1.5rem;">
       <h2>Get the dataset</h2>
       <p>Earth-4471 Archive — Phases 1–4. Opens directly in Excel, or load with Python/SQL/R.</p>
       <!-- Paths are relative to the Hosting root (portal/public/), not the
@@ -31,23 +47,6 @@
       <a href="data/post_credits.csv" download>post_credits.csv</a> ·
       <a href="data/roster.csv" download>roster.csv</a>
     </div>
-    <div class="panel" style="margin-top:1.5rem;">
-      <h2>Round 2 closes in</h2>
-      <div id="countdown" style="font-size:2rem;font-weight:700;"></div>
-    </div>
   </main>
-  <script>
-    fetch('config/event.json').then(r => r.json()).then(cfg => {
-      const target = new Date(cfg.round2CloseISO).getTime();
-      const el = document.getElementById('countdown');
-      setInterval(() => {
-        const diff = Math.max(0, target - Date.now());
-        const h = Math.floor(diff / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        const s = Math.floor((diff % 60000) / 1000);
-        el.textContent = `${h}h ${m}m ${s}s`;
-      }, 1000);
-    });
-  </script>
 </body>
 </html>
