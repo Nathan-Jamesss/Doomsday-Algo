@@ -15,4 +15,12 @@ function rankTeams(teams) {
   });
 }
 
-module.exports = { combineLeaderboard, rankTeams };
+// Guarded so this file works both under Node (node:test, `require`) and
+// loaded via a plain <script> tag in the browser (Task 16's admin.html) —
+// `module` doesn't exist in a classic browser script, and an unguarded
+// `module.exports` throws an uncaught ReferenceError on every page load
+// there, even though the function declarations above are still hoisted
+// onto the global scope and remain callable.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { combineLeaderboard, rankTeams };
+}

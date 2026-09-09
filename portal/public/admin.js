@@ -10,11 +10,20 @@ document.getElementById('reveal-btn').addEventListener('click', async () => {
   alert(`Scored ${result.data.teamsScored} teams.`);
 });
 
+// Normalize Predict against the true number of Round 2 questions, not a
+// hardcoded guess — Task 4's generator targets 18 (floor of 15), and a
+// fixed divisor of 15 systematically inflated predictPct in the normal
+// 18-question case. 18 is a fallback only for the brief window before
+// this fetch resolves; the real leaderboard render always uses the
+// fetched count once available.
+let questionCount = 18;
+db.collection('questions').get().then(snap => { questionCount = snap.size || questionCount; });
+
 db.collection('leaderboard').onSnapshot(snap => {
   const teams = [];
   snap.forEach(doc => {
     const d = doc.data();
-    const predictPct = Math.min(100, (d.predictRaw || 0) / 15); // ~15-20 questions, 100pts max each
+    const predictPct = Math.min(100, (d.predictRaw || 0) / questionCount);
     const draftPct = ((d.draftRaw || 0) / 195) * 100;
     const reportPct = d.reportRaw || 0;
     const combined = combineLeaderboard(predictPct, draftPct, reportPct);
