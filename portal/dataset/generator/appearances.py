@@ -28,7 +28,13 @@ def generate_appearances(films, characters, seed):
         # billing order by centrality (higher centrality = better billing = lower number)
         cast_sorted = sorted(cast, key=lambda c: -c["centrality"])
         for order, c in enumerate(cast_sorted, start=1):
-            base_screentime = film["_phase_screentime_budget"] * (c["centrality"] + 0.2)
+            # Fold in _screentime_deviation (not just the phase budget) so
+            # the Simpson's paradox signal entities.py bakes into gross
+            # actually reaches the screentime numbers participants can
+            # compute from appearances.csv — omitting it here made the trap
+            # invisible in the shipped data even though it existed
+            # internally (caught in final review).
+            base_screentime = (film["_phase_screentime_budget"] + film["_screentime_deviation"]) * (c["centrality"] + 0.2)
             screentime = round(max(1.0, base_screentime + rng.uniform(-5, 5)), 1)
             dialogue = int(max(0, screentime * rng.uniform(2.0, 4.0)))
             # survival hazard: higher centrality = plot armor, lower hazard
@@ -60,13 +66,22 @@ def generate_co_appearances(appearances, seed):
     for film, cast in by_film.items():
         for i in range(len(cast)):
             for j in range(i + 1, len(cast)):
-                if rng.random() > 0.4:  # not every pair shares a scene
-                    rows.append({
-                        "character_a": cast[i],
-                        "character_b": cast[j],
-                        "film": film,
-                        "shared_scenes": rng.randint(1, 6),
-                    })
+                # Sparse by design: most pairs share no scene at all; of
+                # those that do, most share just 1 (incidental), and only a
+                # minority reach shared_scenes >= 2 (the spec's team-up
+                # threshold used downstream) — a dense/near-universal
+                # co-appearance graph made "team-up" true for almost every
+                # character, so the trait stopped differentiating anything
+                # (caught in final review).
+                if rng.random() > 0.85:
+                    continue
+                shared_scenes = 2 if rng.random() > 0.6 else 1
+                rows.append({
+                    "character_a": cast[i],
+                    "character_b": cast[j],
+                    "film": film,
+                    "shared_scenes": shared_scenes,
+                })
     return rows
 
 def generate_post_credits(films, appearances, seed):

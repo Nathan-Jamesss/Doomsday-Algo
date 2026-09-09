@@ -2,27 +2,17 @@
 renderBanner();
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const functions = firebase.functions();
-
-document.getElementById('reveal-btn').addEventListener('click', async () => {
-  const revealPhase5 = functions.httpsCallable('revealPhase5');
-  const result = await revealPhase5();
-  alert(`Scored ${result.data.teamsScored} teams.`);
-});
 
 // Normalize Predict against the true number of Round 2 questions, not a
-// hardcoded guess — Task 4's generator targets 18 (floor of 15), and a
-// fixed divisor of 15 systematically inflated predictPct in the normal
-// 18-question case. 18 is a fallback only for the brief window before
-// this fetch resolves.
-//
-// Both `questionCount` and the leaderboard snapshot resolve
-// asynchronously and in no guaranteed order — caching the latest
-// snapshot and re-rendering from BOTH triggers (not just onSnapshot)
-// closes the race structurally, rather than relying on the 18 fallback
-// happening to coincide with the real count, or on some later
-// leaderboard write re-firing onSnapshot to correct a stale render.
+// hardcoded guess — the generator targets 18 (floor of 15), and a fixed
+// divisor systematically inflated predictPct in the normal case. 18 is a
+// fallback only for the brief window before this fetch resolves.
 let questionCount = 18;
+// Draft max is 65 (1 exclusive pick per team, not 3 -- the original
+// 3-pick design needed 120-180 exclusive character slots at 40-60 teams,
+// but the roster only has 60 characters total; no pool curation fixes
+// that arithmetic, so the round dropped to 1 pick per team instead).
+const DRAFT_MAX_PER_TEAM = 65;
 let latestLeaderboardSnapshot = null;
 
 function renderLeaderboard() {
@@ -31,7 +21,7 @@ function renderLeaderboard() {
   latestLeaderboardSnapshot.forEach(doc => {
     const d = doc.data();
     const predictPct = Math.min(100, (d.predictRaw || 0) / questionCount);
-    const draftPct = ((d.draftRaw || 0) / 195) * 100;
+    const draftPct = Math.min(100, ((d.draftRaw || 0) / DRAFT_MAX_PER_TEAM) * 100);
     const reportPct = d.reportRaw || 0;
     const combined = combineLeaderboard(predictPct, draftPct, reportPct);
     teams.push({ id: doc.id, ...combined, predictRaw: d.predictRaw || 0, submittedAt: d.lastSubmittedAt || 0 });
@@ -50,4 +40,13 @@ db.collection('questions').get().then(snap => {
 db.collection('leaderboard').onSnapshot(snap => {
   latestLeaderboardSnapshot = snap;
   renderLeaderboard();
+});
+
+db.collection('reveal_state').doc('status').onSnapshot(doc => {
+  const el = document.getElementById('reveal-status');
+  if (doc.exists && doc.data().revealed) {
+    el.textContent = 'Phase 5 has been revealed. Draft scores are final.';
+  } else {
+    el.textContent = 'Phase 5 not yet revealed.';
+  }
 });

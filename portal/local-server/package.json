@@ -1,0 +1,14 @@
+{
+  "name": "doomsday-local-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Replaces Firebase Cloud Functions (requires the paid Blaze plan) with scripts the organizer runs on their own laptop during the event, on Firestore's free Spark plan.",
+  "main": "grading-server.js",
+  "scripts": {
+    "start": "node grading-server.js",
+    "reveal": "node reveal.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  }
+}

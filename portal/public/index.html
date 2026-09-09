@@ -18,12 +18,18 @@
     <div class="panel">
       <h2>Get the dataset</h2>
       <p>Earth-4471 Archive — Phases 1–4. Opens directly in Excel, or load with Python/SQL/R.</p>
-      <a href="../dataset/generator/output/public/films.csv" download>films.csv</a> ·
-      <a href="../dataset/generator/output/public/characters.csv" download>characters.csv</a> ·
-      <a href="../dataset/generator/output/public/appearances.csv" download>appearances.csv</a> ·
-      <a href="../dataset/generator/output/public/co_appearances.csv" download>co_appearances.csv</a> ·
-      <a href="../dataset/generator/output/public/post_credits.csv" download>post_credits.csv</a> ·
-      <a href="../dataset/generator/output/public/roster.csv" download>roster.csv</a>
+      <!-- Paths are relative to the Hosting root (portal/public/), not the
+           generator's own output folder — a "../" path here goes ABOVE the
+           deployed site root and 404s once actually served (caught in
+           final review; only invisible under file:// local testing). Run
+           `python build.py --public-out ../../public/data` per RUNBOOK.md
+           so these resolve. -->
+      <a href="data/films.csv" download>films.csv</a> ·
+      <a href="data/characters.csv" download>characters.csv</a> ·
+      <a href="data/appearances.csv" download>appearances.csv</a> ·
+      <a href="data/co_appearances.csv" download>co_appearances.csv</a> ·
+      <a href="data/post_credits.csv" download>post_credits.csv</a> ·
+      <a href="data/roster.csv" download>roster.csv</a>
     </div>
     <div class="panel" style="margin-top:1.5rem;">
       <h2>Round 2 closes in</h2>

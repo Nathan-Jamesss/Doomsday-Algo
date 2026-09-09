@@ -32,6 +32,18 @@ const CATEGORIES = [
 
 let judgeId, queue = [], currentIndex = 0;
 
+// judge.js is the one page where team-authored FREEFORM text
+// (chartJustification/trapNote) reaches a privileged viewer via
+// unescaped innerHTML — a team could inject markup that runs in the
+// judge's browser session, which (per final review) is worse here than
+// on predict.js/draft.js because that session can create judge_scores
+// documents. Escaping the two team-controlled fields closes that.
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = String(str == null ? '' : str);
+  return div.innerHTML;
+}
+
 document.getElementById('judge-id-save').addEventListener('click', async () => {
   judgeId = document.getElementById('judge-id-input').value.trim();
   if (!judgeId) return;
@@ -55,7 +67,7 @@ function renderCurrent() {
   // trigger (Task 9) knows which leaderboard row to update.
   const report = queue[currentIndex];
   view.innerHTML = `<h2>Report #${currentIndex + 1} of ${queue.length}</h2>` +
-    report.entries.map(e => `<p><strong>${e.questionId}</strong>: ${e.chartJustification} — trap: ${e.trapNote}</p>`).join('') +
+    report.entries.map(e => `<p><strong>${escapeHtml(e.questionId)}</strong>: ${escapeHtml(e.chartJustification)} — trap: ${escapeHtml(e.trapNote)}</p>`).join('') +
     CATEGORIES.map(cat => `
       <div class="panel" style="margin:0.5rem 0;">
         <strong>${cat.label} (/${cat.max})</strong><br>
@@ -79,8 +91,9 @@ function renderCurrent() {
     // writes the averaged reportRaw into leaderboard server-side.
     db.collection('judge_scores').doc(`${judgeId}_${report.id}`).set({
       judgeId, reportId: report.id, teamId: report.teamId, totals, total, judgedAt: Date.now(),
-    });
-    currentIndex++;
-    renderCurrent();
+    }).then(() => {
+      currentIndex++;
+      renderCurrent();
+    }).catch(() => alert('Score submission failed (maybe already scored this report under this judge ID?). Not advancing — try again.'));
   });
 }

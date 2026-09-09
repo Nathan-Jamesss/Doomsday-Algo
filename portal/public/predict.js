@@ -57,7 +57,9 @@ function loadQuestions() {
           inputs.forEach(i => { probabilities[i.dataset.option] = Number(i.value || 0); });
           db.collection('submissions').doc(`${teamId}_${doc.id}`).set({
             teamId, questionId: doc.id, probabilities, submittedAt: Date.now(),
-          });
+          })
+            .then(() => { div.querySelector(`#submit-${doc.id}`).textContent = 'Submitted ✓'; })
+            .catch(() => alert('Submission failed — check your connection and try again. (You can only submit each question once.)'));
         });
         return;
       }
@@ -77,22 +79,12 @@ function loadQuestions() {
           teamId, questionId: doc.id,
           probabilities: { yes: Number(range.value) },
           submittedAt: Date.now(),
-        });
+        })
+          .then(() => { div.querySelector(`#submit-${doc.id}`).textContent = 'Submitted ✓'; })
+          .catch(() => alert('Submission failed — check your connection and try again. (You can only submit each question once.)'));
       });
     });
   });
 }
 
-function subscribeLeaderboard() {
-  db.collection('leaderboard').onSnapshot(snap => {
-    const rows = [];
-    snap.forEach(doc => rows.push({ id: doc.id, ...doc.data() }));
-    rows.sort((a, b) => (b.predictRaw || 0) - (a.predictRaw || 0));
-    const table = document.getElementById('leaderboard-table');
-    table.innerHTML = '<tr><th>Team</th><th>Predict score</th></tr>' +
-      rows.map(r => `<tr><td>${r.id}</td><td>${(r.predictRaw || 0).toFixed(1)}</td></tr>`).join('');
-  });
-}
-
 initTeamPrompt();
-subscribeLeaderboard();

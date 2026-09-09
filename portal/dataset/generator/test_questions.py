@@ -50,5 +50,21 @@ class TestQuestions(unittest.TestCase):
                     self.assertEqual(len(q["options"]), len(set(q["options"])),
                         f"seed={seed} question={q['id']} has duplicate options: {q['options']}")
 
+    def test_multichoice_correct_option_is_not_always_first(self):
+        # An unshuffled options list always put the correct answer at
+        # index 0 — a positional bias solvable without reading any data.
+        # Sweep seeds and confirm the correct option's position varies.
+        positions = []
+        for seed in range(1, 60):
+            characters = generate_characters(seed=seed)
+            phase5 = generate_phase5(characters, seed=seed)
+            questions, answers = generate_questions_and_answers(phase5, seed=seed)
+            for q in questions:
+                if q["type"] == "multichoice":
+                    positions.append(q["options"].index(answers[q["id"]]["correctOption"]))
+        self.assertGreater(len(positions), 0)
+        self.assertGreater(len(set(positions)), 1,
+            f"correct option position never varies across seeds: {positions}")
+
 if __name__ == "__main__":
     unittest.main()

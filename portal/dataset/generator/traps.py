@@ -1,7 +1,16 @@
 import statistics
 
-def verify_simpsons_paradox(films):
-    pooled_screentime = [f["_phase_screentime_budget"] + f["_screentime_deviation"] for f in films]
+def verify_simpsons_paradox(films, appearances):
+    # Verify against per-film TOTAL screentime summed from appearances.csv —
+    # the actual number a participant computes — not the internal
+    # _screentime_deviation field, which never reached the shipped data in
+    # an earlier version of this generator (a real bug caught in final
+    # review: the trap existed internally but was invisible to teams).
+    screentime_by_film = {}
+    for a in appearances:
+        screentime_by_film[a["film"]] = screentime_by_film.get(a["film"], 0) + a["screentime_min"]
+
+    pooled_screentime = [screentime_by_film.get(f["name"], 0) for f in films]
     pooled_gross = [f["worldwide_gross_m"] for f in films]
     pooled_corr = statistics.correlation(pooled_screentime, pooled_gross)
 
@@ -10,7 +19,7 @@ def verify_simpsons_paradox(films):
     for f in films:
         by_phase.setdefault(f["phase"], []).append(f)
     for phase_films in by_phase.values():
-        st = [f["_screentime_deviation"] for f in phase_films]
+        st = [screentime_by_film.get(f["name"], 0) for f in phase_films]
         go = [f["worldwide_gross_m"] for f in phase_films]
         if len(set(st)) < 2:
             continue

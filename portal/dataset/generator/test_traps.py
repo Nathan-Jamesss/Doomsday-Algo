@@ -11,7 +11,7 @@ class TestTraps(unittest.TestCase):
         self.appearances = generate_appearances(self.films, self.characters, seed=42)
 
     def test_simpsons_paradox_present(self):
-        self.assertTrue(verify_simpsons_paradox(self.films))
+        self.assertTrue(verify_simpsons_paradox(self.films, self.appearances))
 
     def test_survivorship_gap_present(self):
         self.assertTrue(verify_survivorship_gap(self.characters, self.appearances))

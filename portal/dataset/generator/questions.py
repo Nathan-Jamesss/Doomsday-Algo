@@ -53,10 +53,16 @@ def generate_questions_and_answers(phase5, seed):
         options = [partner for partner, _ in ranked[:4]]
         if len(options) < 2:
             continue
+        correct_option = options[0]
+        # Shuffle AFTER capturing the correct option, not before — an
+        # unshuffled options list always put the correct answer first,
+        # a positional bias teams would spot after a couple of questions
+        # (caught in final review).
+        rng.shuffle(options)
         qid = new_id()
         questions.append({"id": qid, "type": "multichoice", "options": options,
             "text": f"Which character does {name} share the most scenes with in Phase 5?"})
-        answers[qid] = {"correctOption": options[0]}
+        answers[qid] = {"correctOption": correct_option}
         made += 1
 
     screentime_by_char = {}
@@ -78,3 +84,16 @@ def generate_questions_and_answers(phase5, seed):
         made += 1
 
     return questions, answers
+
+def generate_draft_pool(phase5, team_count, seed):
+    # The draft board can only offer characters who actually have a
+    # characterOutcomes entry — anyone else scores a guaranteed 0 with no
+    # way to know it in advance (caught in final review, 6/24 of the
+    # original hardcoded pool had no Phase 5 outcome at all). Pool size is
+    # capped at however many such characters actually exist; a team count
+    # beyond that means some teams draft nothing this round, an inherent
+    # limit of a fixed-roster exclusive draft, not a bug to paper over.
+    rng = build_rng(seed + 13000)
+    eligible = sorted(phase5["characterOutcomes"].keys())
+    rng.shuffle(eligible)
+    return eligible[:min(team_count, len(eligible))]

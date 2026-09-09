@@ -11,7 +11,20 @@ service cloud.firestore {
                     && request.resource.data.questionId is string;
       allow read, update, delete: if false;
     }
+    // Fully private, same as answer_key — the live-during-Round-2 raw
+    // predictRaw value is an answer-extraction oracle: a throwaway team ID
+    // submitting 100% on one question and reading its own score back
+    // instantly reveals that question's true/false (caught in final
+    // review). Only the organizer's local-server script (Admin SDK, which
+    // bypasses rules entirely regardless of what they say) ever reads or
+    // writes this collection.
     match /leaderboard/{teamId} {
+      allow read, write: if false;
+    }
+    // Public projector view: rank + blended total only, never per-round
+    // raw scores, so it can't be used to isolate one question's answer.
+    // Written by the same local-server script alongside `leaderboard`.
+    match /leaderboard_public/{teamId} {
       allow read: if true;
       allow write: if false;
     }
@@ -26,6 +39,21 @@ service cloud.firestore {
     match /judge_scores/{scoreId} {
       allow create: if scoreId == request.resource.data.judgeId + '_' + request.resource.data.reportId;
       allow read, update, delete: if false;
+    }
+    // Task 14/15 introduced this collection after Task 7's rules were
+    // written and nobody re-checked the rules file — the report write and
+    // the entire judge queue were silently dead without this (caught in
+    // final review). Public read: judge.js needs to read every team's
+    // report, and this app has no auth to distinguish "a judge" from
+    // anyone else, matching the rest of the collections here. Update is
+    // allowed (not create-only like submissions/judge_scores) because
+    // report.js writes with a fixed doc ID (teamId) via .set() and a team
+    // may legitimately resubmit before Round 4 closes.
+    match /reports/{teamId} {
+      allow read: if true;
+      allow create, update: if teamId == request.resource.data.teamId
+                            && request.resource.data.teamId is string;
+      allow delete: if false;
     }
     match /reveal_state/{doc} {
       allow read: if true;

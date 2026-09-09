@@ -23,8 +23,13 @@
       <button id="team-id-save">Continue</button>
     </div>
     <div id="questions" style="display:none;"></div>
-    <h2 style="margin-top:2rem;">Live Leaderboard</h2>
-    <table id="leaderboard-table" style="width:100%;"></table>
+    <!-- No live per-team score here by design: a raw predictRaw value,
+         readable the instant a submission is graded, lets a throwaway team
+         probe one question at a time (submit 100%, read the score back)
+         and extract the whole answer key during Round 2 itself (caught in
+         final review). Combined standings live on the projector
+         (admin.html), which only ever shows rank + blended total. -->
+    <p style="opacity:0.7;">Check the projector for live standings.</p>
   </main>
   <script src="predict.js"></script>
 </body>

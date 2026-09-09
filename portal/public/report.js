@@ -3,7 +3,12 @@ renderBanner();
 renderNav('report');
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const teamId = localStorage.getItem('doomsday_team_id');
+// A team landing here first (skipping Predict) previously got teamId ===
+// null, an empty query, and doc(null) throwing on submit -- the other
+// pages (predict.js, draft.js) already prompt as a fallback; this one
+// didn't (caught in final review).
+const teamId = localStorage.getItem('doomsday_team_id') || prompt('Team ID:');
+if (teamId) localStorage.setItem('doomsday_team_id', teamId);
 
 // Task 12 submissions come in two shapes: yesno questions submit
 // { probabilities: { yes: N } }, while multichoice questions submit
@@ -68,7 +73,9 @@ async function loadTopThree() {
       chartJustification: document.getElementById(`chart-${i}`).value,
       trapNote: document.getElementById(`trap-${i}`).value,
     }));
-    db.collection('reports').doc(teamId).set({ teamId, entries, submittedAt: Date.now() });
+    db.collection('reports').doc(teamId).set({ teamId, entries, submittedAt: Date.now() })
+      .then(() => alert('Report submitted.'))
+      .catch(() => alert('Submission failed — check your connection and try again.'));
   });
 }
 

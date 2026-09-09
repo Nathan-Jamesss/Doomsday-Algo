@@ -2,4 +2,8 @@ node_modules/
 .superpowers/
 *.log
 portal/dataset/generator/output/
+portal/public/data/
 .worktrees/
+.gstack/
+__pycache__/
+portal/local-server/serviceAccountKey.json

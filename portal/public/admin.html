@@ -7,15 +7,18 @@
   <link rel="stylesheet" href="shared/theme.css">
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
   <script src="shared/firebaseConfig.js"></script>
-  <script src="../shared/leaderboard.js"></script>
+  <script src="shared/leaderboard.js"></script>
 </head>
 <body>
   <script src="shared/banner.js"></script>
   <main style="max-width:1100px;margin:2rem auto;padding:0 1.5rem;">
     <h1 class="accent-red">Live Leaderboard</h1>
-    <button id="reveal-btn">Reveal Phase 5</button>
+    <!-- No auth infra in this project (zero-cost constraint rules out
+         Firebase Cloud Functions / Blaze). Phase 5 reveal and all grading
+         run from the organizer's own laptop via portal/local-server/ — see
+         RUNBOOK.md. There is no in-browser reveal control by design. -->
+    <p id="reveal-status" style="opacity:0.7;font-size:0.9rem;"></p>
     <table id="board" style="width:100%;margin-top:1rem;font-size:1.2rem;"></table>
   </main>
   <script src="admin.js"></script>
