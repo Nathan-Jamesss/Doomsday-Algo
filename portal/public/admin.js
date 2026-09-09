@@ -14,14 +14,21 @@ document.getElementById('reveal-btn').addEventListener('click', async () => {
 // hardcoded guess — Task 4's generator targets 18 (floor of 15), and a
 // fixed divisor of 15 systematically inflated predictPct in the normal
 // 18-question case. 18 is a fallback only for the brief window before
-// this fetch resolves; the real leaderboard render always uses the
-// fetched count once available.
+// this fetch resolves.
+//
+// Both `questionCount` and the leaderboard snapshot resolve
+// asynchronously and in no guaranteed order — caching the latest
+// snapshot and re-rendering from BOTH triggers (not just onSnapshot)
+// closes the race structurally, rather than relying on the 18 fallback
+// happening to coincide with the real count, or on some later
+// leaderboard write re-firing onSnapshot to correct a stale render.
 let questionCount = 18;
-db.collection('questions').get().then(snap => { questionCount = snap.size || questionCount; });
+let latestLeaderboardSnapshot = null;
 
-db.collection('leaderboard').onSnapshot(snap => {
+function renderLeaderboard() {
+  if (!latestLeaderboardSnapshot) return;
   const teams = [];
-  snap.forEach(doc => {
+  latestLeaderboardSnapshot.forEach(doc => {
     const d = doc.data();
     const predictPct = Math.min(100, (d.predictRaw || 0) / questionCount);
     const draftPct = ((d.draftRaw || 0) / 195) * 100;
@@ -33,4 +40,14 @@ db.collection('leaderboard').onSnapshot(snap => {
   document.getElementById('board').innerHTML =
     '<tr><th>Rank</th><th>Team</th><th>Total</th><th>Predict</th><th>Draft</th><th>Report</th></tr>' +
     ranked.map((t, i) => `<tr><td>${i + 1}</td><td>${t.id}</td><td>${t.total}</td><td>${t.predictPct.toFixed(0)}%</td><td>${t.draftPct.toFixed(0)}%</td><td>${t.reportPct.toFixed(0)}%</td></tr>`).join('');
+}
+
+db.collection('questions').get().then(snap => {
+  questionCount = snap.size || questionCount;
+  renderLeaderboard();
+});
+
+db.collection('leaderboard').onSnapshot(snap => {
+  latestLeaderboardSnapshot = snap;
+  renderLeaderboard();
 });
