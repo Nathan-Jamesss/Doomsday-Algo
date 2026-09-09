@@ -78,26 +78,26 @@ If any of these fail, fix it now — you will not have time during the live even
 
 ## During the event
 
-**This is a drop-in event, not a synchronized one.** Event window: **11:00 AM – 8:00 PM, September 11, 2026.** Teams arrive and leave whenever within that window, at their own pace — there's no group kickoff and no fixed round boundaries. The only thing with real time pressure is Draft (character pool shrinks as the day goes on); everything else is per-team.
+**This is a drop-in event, not a synchronized one.** Event window: **12:00 PM – 6:00 PM, September 11, 2026.** Teams arrive and leave whenever within that window, at their own pace — there's no group kickoff and no fixed round boundaries. The only thing with real time pressure is Draft (character pool shrinks as the day goes on); everything else is per-team.
 
-1. **Before 11:00 AM**, start the grading server and leave the terminal window open for the entire window:
+1. **Before 12:00 PM**, start the grading server and leave the terminal window open for the entire window:
    ```bash
    cd portal/local-server && node grading-server.js
    ```
    It prints `Grading server running.` once ready. If it prints `Answer key: MISSING`, re-run Step 5 above — grading will silently do nothing without it. It's designed to sit open for hours without issue (submissions are debounced/batched, not processed one-by-one against Firestore's free quota — see the comments in `grading-server.js` if curious).
 2. Project `admin.html` for the live combined leaderboard (rank + total only — no per-round breakdown is shown publicly, by design, so no team can reverse-engineer another team's raw Predict score).
-3. **At 8:00 PM (or whenever you decide the draft pool has had a fair run)**, in a **second** terminal (keep `grading-server.js` running):
+3. **At 6:00 PM (or whenever you decide the draft pool has had a fair run)**, in a **second** terminal (keep `grading-server.js` running):
    ```bash
    cd portal/local-server && node reveal.js
    ```
    This scores every team's draft picks and flips `reveal_state/status.revealed = true`. Draft scores appear on the projector within seconds. This is the one moment that IS synchronized — everyone's Draft score posts at once, because it can't be computed per-team (it depends on the same hidden data for everyone).
-4. Judging (Round 4) can happen anytime after reports are submitted — no ordering dependency on the reveal, and no need to wait until 8 PM to start judging.
+4. Judging (Round 4) can happen anytime after reports are submitted — no ordering dependency on the reveal, and no need to wait until 6 PM to start judging.
 
 ---
 
 ## Known limitations (accepted, not fixed)
 
-- **No automated window enforcement.** Firestore rules don't check the clock — a team can technically submit outside 11 AM–8 PM. Compensate operationally: announce the window clearly, and simply don't run `seed.js`/deploy before 11 AM or accept new submissions as meaningful after you've decided to run `reveal.js`.
+- **No automated window enforcement.** Firestore rules don't check the clock — a team can technically submit outside 12 PM–6 PM. Compensate operationally: announce the window clearly, and simply don't run `seed.js`/deploy before 12 PM or accept new submissions as meaningful after you've decided to run `reveal.js`.
 - **Draft pool caps at ~40-44 characters, not your full team count** (the roster only has 60 characters total; an exclusive draft can't serve more picks than exist). Plan your expectations accordingly — teams arriving late in the day may find the pool thin or empty, which is expected, not a bug.
 - **Team IDs are self-chosen, not authenticated.** A team could type another team's name. Mitigate by having organizers verify/assign team IDs at check-in, same as the original paper-based plan.
 - **A team that submits zero Predict answers scores 0% on Predict, not the neutral 75% a team who answers something-but-not-everything gets.** The "skipped question defaults to neutral" rule only applies once a team has at least one submission (so grading has something to attach a score to) — a team that never interacts with Predict at all has no record to credit at all. Low real-world impact (a team doing literally nothing isn't meaningfully participating), but worth knowing if you see a 0% and wonder why.

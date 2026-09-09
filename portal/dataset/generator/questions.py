@@ -1,9 +1,16 @@
 from model import build_rng
 
-SURVIVAL_COUNT = 8
-TEAMUP_COUNT = 4
-PARTNER_COUNT = 3
-SCREENTIME_COUNT = 3
+# Cut from 8/4/3/3 (18 total) to 5/3/2/2 (12 total) -- the event's allotted
+# slot is a fixed 6 hours (12-6 PM), not something we can extend, and it's
+# a drop-in event: someone walking in at 5:30 still needs to finish the
+# whole thing. 18 questions realistically cost 10-15 minutes of reading
+# and clicking alone before any actual analysis; 12 keeps the same 4
+# question types (still a real, varied Predict round) at roughly 2/3 the
+# unavoidable time cost.
+SURVIVAL_COUNT = 5
+TEAMUP_COUNT = 3
+PARTNER_COUNT = 2
+SCREENTIME_COUNT = 2
 
 def generate_questions_and_answers(phase5, seed):
     rng = build_rng(seed + 9000)
