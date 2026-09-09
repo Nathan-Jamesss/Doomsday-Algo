@@ -2335,7 +2335,7 @@ git commit -m "feat: blind judge queue with tick-box checklist matching official
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
   <script src="shared/firebaseConfig.js"></script>
-  <script src="../../shared/leaderboard.js"></script>
+  <script src="../shared/leaderboard.js"></script>
 </head>
 <body>
   <script src="shared/banner.js"></script>
