@@ -28,10 +28,7 @@
       border: var(--border-thin); padding: var(--s-2) var(--s-3); background: var(--paper);
     }
 
-    /* Cinematic video hero. Plays once, freezes on its exact last frame
-       (captured to canvas, not a separately-exported still, so it can
-       never drift out of sync with the clip), then a PLAY NOW button
-       reveals the rest of the page underneath. */
+    /* Cinematic full-bleed hero image, PLAY NOW scrolls into the briefing. */
     .hero {
       position: relative;
       width: 100vw;
@@ -125,14 +122,34 @@
     .pin-step__number {
       display: block; text-align: center;
       font-family: var(--font-fx);
-      font-size: 46px; line-height: 1;
+      font-size: 40px; line-height: 1;
       color: var(--acid);
       text-shadow: 0 0 16px rgba(57,255,106,0.55);
-      margin-bottom: var(--s-3);
+      margin-bottom: var(--s-2);
     }
-    .pin-step .step__time { display: block; text-align: center; }
-    .pin-step h2 { text-align: center; }
-    .pin-step button { display: block; margin: var(--s-4) auto 0; }
+    .pin-step .step__time { display: block; text-align: center; font-size: var(--t-xs); }
+    .pin-step h2 { text-align: center; font-size: var(--t-lg); margin-bottom: var(--s-2); }
+    .pin-step p { text-align: center; font-size: var(--t-sm); margin: 0; }
+    .pin-step button { display: block; margin: var(--s-4) auto 0; font-size: var(--t-xs); }
+
+    /* Checkerboard corner motif -- a nod to the chess-board teaser art,
+       drawn as a plain CSS pattern rather than reusing the studio's own
+       key art as a repeating background across every card. */
+    .pin-step__board {
+      position: absolute; top: var(--s-3); right: var(--s-3);
+      width: 34px; height: 34px;
+      background-image:
+        linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%),
+        linear-gradient(45deg, var(--line) 25%, transparent 25%, transparent 75%, var(--line) 75%);
+      background-size: 12px 12px;
+      background-position: 0 0, 6px 6px;
+      opacity: 0.55;
+    }
+    .pin-step__pawn {
+      width: 20px; height: 20px;
+      color: var(--acid);
+      filter: drop-shadow(0 0 4px rgba(57,255,106,0.6));
+    }
     .pin-connector {
       width: 2px; height: 44px; margin: 0 auto;
       background-image: linear-gradient(var(--line-bright) 55%, transparent 45%);
@@ -202,7 +219,7 @@
 </head>
 <body>
   <section class="hero" id="hero">
-    <img src="assets/hero-doom.jpg" alt="" class="hero__img">
+    <img src="assets/hero-room.jpg" alt="" class="hero__img">
     <div class="hero__overlay">
       <button id="play-now-btn" class="hero__play">▶ PLAY NOW</button>
       <span class="hero__hint">Data Science Club · V-TAPP 2026</span>
@@ -264,11 +281,12 @@
     <div class="pin-track">
       <div class="pin-row pin-row--single">
         <div class="pin-step">
-          <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+          <div class="pin-step__board" aria-hidden="true"></div>
+          <svg class="pin-step__pin pin-step__pawn" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a3 3 0 0 1 1.7 5.47c1.4.68 2.4 2.02 2.55 3.6l.25 2.43a1 1 0 0 1-1 1.1h-.7l1.02 4.6a1 1 0 0 1-1 1.2H9.18a1 1 0 0 1-1-1.2l1.02-4.6h-.7a1 1 0 0 1-1-1.1l.25-2.44c.16-1.57 1.16-2.9 2.55-3.6A3 3 0 0 1 12 2z"/></svg>
           <span class="pin-step__number">00</span>
-          <span class="step__time">5 minutes</span>
+          <span class="step__time">5 min</span>
           <h2>Set up</h2>
-          <p style="margin:0;">Pick a team ID and use the exact same one on every page. It's saved in this browser, so keep using the same laptop.</p>
+          <p>Pick a team ID. Download the archive.</p>
           <button id="open-world-btn" class="btn btn--lg">🌐 Enter the Archive</button>
         </div>
       </div>
@@ -276,29 +294,22 @@
 
       <div class="pin-row pin-row--pair">
         <div class="pin-step">
-          <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+          <div class="pin-step__board" aria-hidden="true"></div>
+          <svg class="pin-step__pin pin-step__pawn" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a3 3 0 0 1 1.7 5.47c1.4.68 2.4 2.02 2.55 3.6l.25 2.43a1 1 0 0 1-1 1.1h-.7l1.02 4.6a1 1 0 0 1-1 1.2H9.18a1 1 0 0 1-1-1.2l1.02-4.6h-.7a1 1 0 0 1-1-1.1l.25-2.44c.16-1.57 1.16-2.9 2.55-3.6A3 3 0 0 1 12 2z"/></svg>
           <span class="pin-step__number">01</span>
-          <span class="step__time">30–45 minutes · 10 questions</span>
-          <h2>Round 1 — Explore</h2>
-          <p style="margin:0;">Ten questions whose answers are <em>already in the files you just downloaded</em>. Nothing to predict here — this round is about actually reading the data.</p>
-          <ul>
-            <li>Expect joins and group-bys: totals per character across 28 films, comparisons between films, lookups across two files.</li>
-            <li>Answer each with a probability. Looked it up and certain? 100%. Didn't check? 50%.</li>
-          </ul>
+          <span class="step__time">30–45 min</span>
+          <h2>Explore</h2>
+          <p>Answers are already in your files. Look it up.</p>
           <button onclick="location.href='explore.html'">Start Round 1</button>
         </div>
 
         <div class="pin-step">
-          <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+          <div class="pin-step__board" aria-hidden="true"></div>
+          <svg class="pin-step__pin pin-step__pawn" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a3 3 0 0 1 1.7 5.47c1.4.68 2.4 2.02 2.55 3.6l.25 2.43a1 1 0 0 1-1 1.1h-.7l1.02 4.6a1 1 0 0 1-1 1.2H9.18a1 1 0 0 1-1-1.2l1.02-4.6h-.7a1 1 0 0 1-1-1.1l.25-2.44c.16-1.57 1.16-2.9 2.55-3.6A3 3 0 0 1 12 2z"/></svg>
           <span class="pin-step__number">02</span>
-          <span class="step__time">60–90 minutes · 24 questions</span>
-          <h2>Round 2 — Predict</h2>
-          <p style="margin:0;">Twenty-four questions about <strong>Phase 5, which hasn't happened.</strong> No file contains these answers. You have to model Phases 1–4 and extrapolate.</p>
-          <ul>
-            <li>Scored by Brier score: an honest 60% beats a bluffed 95% that turns out wrong.</li>
-            <li>Skipping scores the same as answering 50% — a real shrug costs you nothing extra.</li>
-            <li>The dataset contains deliberate traps. Not every correlation you find is real.</li>
-          </ul>
+          <span class="step__time">60–90 min</span>
+          <h2>Predict</h2>
+          <p>Model Phase 5. It hasn't happened yet.</p>
           <button onclick="location.href='predict.html'">Start Round 2</button>
         </div>
       </div>
@@ -306,28 +317,22 @@
 
       <div class="pin-row pin-row--pair">
         <div class="pin-step">
-          <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+          <div class="pin-step__board" aria-hidden="true"></div>
+          <svg class="pin-step__pin pin-step__pawn" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a3 3 0 0 1 1.7 5.47c1.4.68 2.4 2.02 2.55 3.6l.25 2.43a1 1 0 0 1-1 1.1h-.7l1.02 4.6a1 1 0 0 1-1 1.2H9.18a1 1 0 0 1-1-1.2l1.02-4.6h-.7a1 1 0 0 1-1-1.1l.25-2.44c.16-1.57 1.16-2.9 2.55-3.6A3 3 0 0 1 12 2z"/></svg>
           <span class="pin-step__number">03</span>
-          <span class="step__time">5 minutes · do this before the pool empties</span>
-          <h2>Round 3 — Draft</h2>
-          <p style="margin:0;">Claim <strong>one character</strong> you believe survives Phase 5. Exclusive: first team to claim a character takes them off the board for everyone else.</p>
-          <ul>
-            <li>This is the only round with real time pressure — the pool shrinks all afternoon.</li>
-            <li>Your draft score posts at the end, when the organizers reveal Phase 5. It can't be scored per-team before then.</li>
-          </ul>
+          <span class="step__time">5 min</span>
+          <h2>Draft</h2>
+          <p>Claim one character before it's gone.</p>
           <button onclick="location.href='draft.html'">Start Round 3</button>
         </div>
 
         <div class="pin-step">
-          <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+          <div class="pin-step__board" aria-hidden="true"></div>
+          <svg class="pin-step__pin pin-step__pawn" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a3 3 0 0 1 1.7 5.47c1.4.68 2.4 2.02 2.55 3.6l.25 2.43a1 1 0 0 1-1 1.1h-.7l1.02 4.6a1 1 0 0 1-1 1.2H9.18a1 1 0 0 1-1-1.2l1.02-4.6h-.7a1 1 0 0 1-1-1.1l.25-2.44c.16-1.57 1.16-2.9 2.55-3.6A3 3 0 0 1 12 2z"/></svg>
           <span class="pin-step__number">04</span>
-          <span class="step__time">20–30 minutes</span>
-          <h2>Round 4 — Report</h2>
-          <p style="margin:0;">Justify your three boldest Predict answers in a couple of sentences each, and name at least one trap you found in the data.</p>
-          <ul>
-            <li>A judge scores this by hand — reasoning and evidence, not writing style.</li>
-            <li>Judged whenever a judge gets to it. You don't have to wait around for the score.</li>
-          </ul>
+          <span class="step__time">20–30 min</span>
+          <h2>Report</h2>
+          <p>Defend your boldest calls.</p>
           <button onclick="location.href='report.html'">Start Round 4</button>
         </div>
       </div>
