@@ -2,8 +2,39 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Doomsday Algorithm — V-TAPP 2026</title>
   <link rel="stylesheet" href="shared/theme.css">
+  <style>
+    .step {
+      display: grid;
+      grid-template-columns: 3rem 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .step-num {
+      width: 3rem; height: 3rem;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 1.2rem;
+      border: 2px solid rgba(255,255,255,0.15);
+      color: var(--text-muted);
+    }
+    .step.done .step-num { border-color: var(--accent-green); color: var(--accent-green-light); }
+    .step-time { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; }
+    .step h2 { margin: 0 0 0.25rem; font-size: 1.25rem; }
+    .step ul { margin: 0.6rem 0 0; padding-left: 1.1rem; }
+    .step li { margin-bottom: 0.35rem; }
+    .go {
+      display: inline-block; margin-top: 0.9rem;
+      background: var(--accent-green); color: #0c0f12;
+      font-weight: 700; text-decoration: none;
+      padding: 0.55rem 1.2rem; border-radius: 8px;
+    }
+    .files a { color: var(--accent-green-light); }
+    .rail { border-left: 1px solid rgba(255,255,255,0.1); margin-left: 1.45rem; height: 0.9rem; }
+    code { background: rgba(255,255,255,0.07); padding: 0.1rem 0.35rem; border-radius: 4px; }
+  </style>
 </head>
 <body>
   <script src="shared/banner.js"></script>
@@ -12,40 +43,96 @@
     renderBanner();
     renderNav('landing');
   </script>
-  <main style="max-width:900px;margin:2rem auto;padding:0 1.5rem;">
+  <main style="max-width:880px;margin:2rem auto;padding:0 1.5rem;">
     <h1 class="accent-red">DOOMSDAY <span class="accent-green">ALGORITHM</span></h1>
     <p>MCU Doomsday Prediction Challenge — Data Science Club, V-TAPP 2026</p>
 
-    <!-- No live host walks anyone through this (drop-in event, no fixed
-         start), so this page has to carry the whole briefing that would
-         normally be spoken aloud at a kickoff. -->
-    <div class="panel">
-      <h2>How this works</h2>
-      <p><strong>Event window: 12:00 PM – 6:00 PM, September 11, 2026.</strong> Drop in anytime in that window — there's no fixed start, and no group moves through this together. Takes about <strong>15–20 minutes</strong> start to finish, so even arriving close to 6 PM is fine. Do these four things, in order, at your own pace:</p>
-      <ol>
-        <li><strong>Download the dataset</strong> below and explore it (Excel, Python, SQL, R — whatever you've got).</li>
-        <li><strong>Predict</strong> — answer 12 questions about the hidden "Phase 5" data with a probability, not a guess. Graded the instant you submit.</li>
-        <li><strong>Draft</strong> — pick 1 character. This is the one part with real urgency: whoever picks a character first gets it, and it's gone for everyone else the instant they do. Come early if you want more choice.</li>
-        <li><strong>Report</strong> — justify your 3 boldest Predict answers in a couple sentences each, then a judge scores it (also whenever they get to it).</li>
-      </ol>
-      <p>You can close this and come back later — your team ID (typed once, saved in your browser) picks up right where you left off. Predict and Report scores are final the moment they're graded. Draft scores post for everyone at once, later, after the organizers close the draft pool — that's the one thing that can't be scored per-team, since it depends on data nobody sees until then.</p>
+    <div class="panel" style="margin-bottom:1.5rem;">
+      <p style="margin-top:0;"><strong>Event window: 12:00 PM – 6:00 PM, September 11, 2026.</strong> Start whenever you arrive — there's no group kickoff. Plan for <strong>about 2.5–3 hours</strong> end to end.</p>
+      <p style="margin-bottom:0;">Arriving late? Start anyway. Rounds 1, 2 and 4 are scored the moment you submit, so partial progress still counts — you keep every point you earn even if you don't reach the end.</p>
     </div>
 
-    <div class="panel" style="margin-top:1.5rem;">
-      <h2>Get the dataset</h2>
-      <p>Earth-4471 Archive — Phases 1–4. Opens directly in Excel, or load with Python/SQL/R.</p>
-      <!-- Paths are relative to the Hosting root (portal/public/), not the
-           generator's own output folder — a "../" path here goes ABOVE the
-           deployed site root and 404s once actually served (caught in
-           final review; only invisible under file:// local testing). Run
-           `python build.py --public-out ../../public/data` per RUNBOOK.md
-           so these resolve. -->
-      <a href="data/films.csv" download>films.csv</a> ·
-      <a href="data/characters.csv" download>characters.csv</a> ·
-      <a href="data/appearances.csv" download>appearances.csv</a> ·
-      <a href="data/co_appearances.csv" download>co_appearances.csv</a> ·
-      <a href="data/post_credits.csv" download>post_credits.csv</a> ·
-      <a href="data/roster.csv" download>roster.csv</a>
+    <div class="step">
+      <div class="step-num">0</div>
+      <div class="panel">
+        <span class="step-time">5 minutes</span>
+        <h2>Set up</h2>
+        <p style="margin:0;">Pick a team ID and use the exact same one on every page. It's saved in this browser, so keep using the same laptop.</p>
+        <p class="files" style="margin-bottom:0;">Then download the Earth-4471 Archive (Phases 1–4):<br>
+          <a href="data/films.csv" download>films.csv</a> ·
+          <a href="data/characters.csv" download>characters.csv</a> ·
+          <a href="data/appearances.csv" download>appearances.csv</a> ·
+          <a href="data/co_appearances.csv" download>co_appearances.csv</a> ·
+          <a href="data/post_credits.csv" download>post_credits.csv</a> ·
+          <a href="data/roster.csv" download>roster.csv</a>
+        </p>
+      </div>
+    </div>
+    <div class="rail"></div>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="panel">
+        <span class="step-time">30–45 minutes · 10 questions</span>
+        <h2>Round 1 — Explore</h2>
+        <p style="margin:0;">Ten questions whose answers are <em>already in the files you just downloaded</em>. Nothing to predict here — this round is about actually reading the data.</p>
+        <ul>
+          <li>Expect joins and group-bys: totals per character across 28 films, comparisons between films, lookups across two files.</li>
+          <li>Answer each with a probability. Looked it up and certain? 100%. Didn't check? 50%.</li>
+        </ul>
+        <a class="go" href="explore.html">Start Round 1</a>
+      </div>
+    </div>
+    <div class="rail"></div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="panel">
+        <span class="step-time">60–90 minutes · 24 questions</span>
+        <h2>Round 2 — Predict</h2>
+        <p style="margin:0;">Twenty-four questions about <strong>Phase 5, which hasn't happened.</strong> No file contains these answers. You have to model Phases 1–4 and extrapolate.</p>
+        <ul>
+          <li>Scored by Brier score: an honest 60% beats a bluffed 95% that turns out wrong.</li>
+          <li>Skipping scores the same as answering 50% — a real shrug costs you nothing extra.</li>
+          <li>The dataset contains deliberate traps. Not every correlation you find is real.</li>
+        </ul>
+        <a class="go" href="predict.html">Start Round 2</a>
+      </div>
+    </div>
+    <div class="rail"></div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="panel">
+        <span class="step-time">5 minutes · do this before the pool empties</span>
+        <h2>Round 3 — Draft</h2>
+        <p style="margin:0;">Claim <strong>one character</strong> you believe survives Phase 5. Exclusive: first team to claim a character takes them off the board for everyone else.</p>
+        <ul>
+          <li>This is the only round with real time pressure — the pool shrinks all afternoon.</li>
+          <li>Your draft score posts at the end, when the organizers reveal Phase 5. It can't be scored per-team before then.</li>
+        </ul>
+        <a class="go" href="draft.html">Start Round 3</a>
+      </div>
+    </div>
+    <div class="rail"></div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="panel">
+        <span class="step-time">20–30 minutes</span>
+        <h2>Round 4 — Report</h2>
+        <p style="margin:0;">Justify your three boldest Predict answers in a couple of sentences each, and name at least one trap you found in the data.</p>
+        <ul>
+          <li>A judge scores this by hand — reasoning and evidence, not writing style.</li>
+          <li>Judged whenever a judge gets to it. You don't have to wait around for the score.</li>
+        </ul>
+        <a class="go" href="report.html">Start Round 4</a>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:2rem;">
+      <h2 style="margin-top:0;">Scoring</h2>
+      <p style="margin-bottom:0;">Explore and Predict are graded automatically within seconds of each submission. Draft posts for everyone at once after the Phase 5 reveal. Report is judged by hand. Live standings (rank and total only) are on the projector — per-round breakdowns stay private so nobody can reverse-engineer another team's answers.</p>
     </div>
   </main>
 </body>

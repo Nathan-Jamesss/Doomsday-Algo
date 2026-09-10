@@ -39,7 +39,7 @@ async function revealPhase5(db) {
   });
 
   const questionsSnap = await db.collection('questions').get();
-  const questionCount = questionsSnap.size || 18;
+  const questionCount = questionsSnap.size || 34;
 
   const leaderboardSnap = await db.collection('leaderboard').get();
   const existingLeaderboard = {};

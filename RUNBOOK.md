@@ -6,6 +6,22 @@
 
 ---
 
+## This deployment (already done — 2026-09-10)
+
+| | |
+|---|---|
+| Live site | **https://doomsdayalgorithm-5f1e8.web.app** |
+| Firebase project | `doomsdayalgorithm-5f1e8` (Spark/free, no card) |
+| Owning Google account | **nj58711@gmail.com** — the CLI must be logged in as this account, not any other |
+| Dataset seed | `42` (34 questions, 43-character draft pool) |
+| Console | https://console.firebase.google.com/project/doomsdayalgorithm-5f1e8 |
+
+Setup steps 1-6 below are **complete** and were verified end-to-end against the live deployment on 2026-09-10: dataset built, Firestore seeded, rules + Hosting deployed, a real submission graded through to `leaderboard_public`, draft pool served, report page loading a team's own submissions. Test data was deleted afterwards; the leaderboard is empty.
+
+On event day you only need the **During the event** section: start `grading-server.js` before noon, and run `reveal.js` at the end.
+
+---
+
 ## One-time setup (before the event)
 
 ### 1. Create a Firebase project (Spark plan, free)
@@ -44,6 +60,8 @@ cd portal/dataset/generator && python -m unittest discover -p "test_*.py"
 ```
 All tests should pass (27 as of this writing).
 
+This writes **34 questions**: 10 Round 1 (Explore) questions answerable straight from the public Phase 1-4 CSVs, and 24 Round 2 (Predict) questions about the hidden Phase 5. Both live in the same `questions` collection, distinguished by a `round` field, and both are graded by the same scorer.
+
 ### 5. Seed Firestore
 
 ```bash
@@ -79,6 +97,8 @@ If any of these fail, fix it now — you will not have time during the live even
 ## During the event
 
 **This is a drop-in event, not a synchronized one.** Event window: **12:00 PM – 6:00 PM, September 11, 2026.** Teams arrive and leave whenever within that window, at their own pace — there's no group kickoff and no fixed round boundaries. The only thing with real time pressure is Draft (character pool shrinks as the day goes on); everything else is per-team.
+
+**Expected runtime is 2.5-3 hours per team** (Explore 30-45 min, Predict 60-90 min, Draft 5 min, Report 20-30 min). That is deliberately longer than the window can absorb for a late arrival: a team walking in at 4 PM will not finish all four rounds by 6. This is an accepted trade (organizer's call — a real event, not a 20-minute filler). Mitigations already built in: Explore, Predict and Report are each graded per-submission the instant they arrive, so a partial run still scores everything it earned, and the landing page says so up front. If teams are still working at 6 PM, either let them finish before running `reveal.js` or run it and accept their Draft picks score against the reveal like everyone else's.
 
 1. **Before 12:00 PM**, start the grading server and leave the terminal window open for the entire window:
    ```bash

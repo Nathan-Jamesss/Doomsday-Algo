@@ -1,0 +1,36 @@
+<!-- portal/public/explore.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Explore — Doomsday Algorithm</title>
+  <link rel="stylesheet" href="shared/theme.css">
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="shared/firebaseConfig.js"></script>
+</head>
+<body>
+  <script src="shared/banner.js"></script>
+  <script src="shared/nav.js"></script>
+  <script>
+    renderBanner();
+    renderNav('explore');
+  </script>
+  <main style="max-width:900px;margin:2rem auto;padding:0 1.5rem;">
+    <h1 class="accent-green">Round 1 — Explore</h1>
+    <div class="panel">
+      <p><strong>Every answer here is already in the CSVs you downloaded.</strong> Nothing in this round is a prediction — it's all in the Phase 1–4 data. Open the files in Excel, pandas, SQL, whatever you like, and look it up.</p>
+      <p>Answer with a <strong>probability</strong>, same as every round: 100% if you looked it up and you're certain, 50% if you're guessing. Confident and wrong costs you more than an honest 50%.</p>
+      <p style="opacity:0.8;">Rough time: 30–45 minutes. Files you'll need: <code>films.csv</code>, <code>characters.csv</code>, <code>appearances.csv</code>, <code>post_credits.csv</code>.</p>
+    </div>
+    <div id="team-id-prompt" class="panel">
+      <label>Team ID: <input id="team-id-input" type="text"></label>
+      <button id="team-id-save">Continue</button>
+    </div>
+    <div id="questions" style="display:none;"></div>
+    <p style="opacity:0.7;">Check the projector for live standings.</p>
+  </main>
+  <script>window.DOOMSDAY_ROUND = 'explore';</script>
+  <script src="predict.js"></script>
+</body>
+</html>

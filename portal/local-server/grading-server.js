@@ -146,7 +146,7 @@ function startServer(db, options = {}) {
   // (no extra reads) and written only where the value actually changed
   // (no wasted writes).
   async function recomputePublic() {
-    const questionCount = (questionsCache && questionsCache.length) || 12;
+    const questionCount = (questionsCache && questionsCache.length) || 34;
     const teams = Object.entries(leaderboardMemory).map(([id, d]) => {
       const predictPct = Math.min(100, (d.predictRaw || 0) / questionCount);
       const draftPct = Math.min(100, ((d.draftRaw || 0) / 65) * 100); // 65 = max for 1 exclusive pick/team

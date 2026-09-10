@@ -1,4 +1,11 @@
 // portal/public/predict.js
+// Shared renderer for both question rounds. explore.html sets
+// window.DOOMSDAY_ROUND = 'explore' before loading this file; predict.html
+// leaves it unset. Filtering happens client-side rather than with a
+// Firestore where() clause so no composite index or rule change is needed
+// for 34 documents.
+const ROUND = window.DOOMSDAY_ROUND || 'predict';
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
@@ -27,11 +34,11 @@ function loadQuestions() {
     const container = document.getElementById('questions');
     snap.forEach(doc => {
       const q = doc.data();
+      if ((q.round || 'predict') !== ROUND) return;
       const div = document.createElement('div');
       div.className = 'panel';
       div.style.marginBottom = '1rem';
 
-      // 3 of 18 Round 2 questions are multichoice (Task 4) — Task 8's
       // multiChoiceScore reads probabilities[correctOption] by the real
       // option string, so this must render one input per option, not the
       // yesno slider (which would always score multichoice questions as 0).

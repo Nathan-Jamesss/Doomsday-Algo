@@ -1,16 +1,13 @@
-from model import build_rng
+from model import build_rng, FACTIONS
 
-# Cut from 8/4/3/3 (18 total) to 5/3/2/2 (12 total) -- the event's allotted
-# slot is a fixed 6 hours (12-6 PM), not something we can extend, and it's
-# a drop-in event: someone walking in at 5:30 still needs to finish the
-# whole thing. 18 questions realistically cost 10-15 minutes of reading
-# and clicking alone before any actual analysis; 12 keeps the same 4
-# question types (still a real, varied Predict round) at roughly 2/3 the
-# unavoidable time cost.
-SURVIVAL_COUNT = 5
-TEAMUP_COUNT = 3
-PARTNER_COUNT = 2
-SCREENTIME_COUNT = 2
+# Bumped back up from 5/3/2/2 (12 total) to 10/6/4/4 (24 total) -- the event
+# moved from a strict 15-20 minute drop-in to a real 2.5-3 hour session
+# (organizer's explicit call, accepting that very late arrivals may not
+# finish inside the 12-6 window). Same 4 question types, just more of each.
+SURVIVAL_COUNT = 10
+TEAMUP_COUNT = 6
+PARTNER_COUNT = 4
+SCREENTIME_COUNT = 4
 
 def generate_questions_and_answers(phase5, seed):
     rng = build_rng(seed + 9000)
@@ -88,6 +85,122 @@ def generate_questions_and_answers(phase5, seed):
         questions.append({"id": qid, "type": "yesno",
             "text": f"Will {a_name} have more total screentime than {b_name} in Phase 5?"})
         answers[qid] = {"actualYes": screentime_by_char[a_name] > screentime_by_char[b_name]}
+        made += 1
+
+    return questions, answers
+
+# Explore round: a new pre-Predict round added when the event grew from a
+# 15-20 minute drop-in to a real 2.5-3 hour session. Every answer here comes
+# from the PUBLIC Phases 1-4 CSVs the team already downloaded, computed
+# deterministically at build time -- unlike Predict, nothing here depends on
+# the hidden Phase 5 data. Its purpose is to force an actual look at the
+# dataset (joins, sums, lookups) before Predict, not to test the same
+# forecasting skill twice.
+FILM_GROSS_COMPARE_COUNT = 2
+SURVIVED_ALL_COUNT = 2
+TOP_SCREENTIME_COUNT = 2
+FACTION_LOOKUP_COUNT = 2
+POST_CREDITS_COUNT = 2
+
+def generate_explore_questions_and_answers(films, characters, appearances, co_appearances, post_credits, seed):
+    rng = build_rng(seed + 21000)
+
+    questions = []
+    answers = {}
+    next_id = 1
+
+    def new_id():
+        nonlocal next_id
+        qid = f"e{next_id}"
+        next_id += 1
+        return qid
+
+    screentime_by_char = {}
+    appearance_count_by_char = {}
+    survived_all_by_char = {}
+    for a in appearances:
+        name = a["character"]
+        screentime_by_char[name] = screentime_by_char.get(name, 0) + a["screentime_min"]
+        appearance_count_by_char[name] = appearance_count_by_char.get(name, 0) + 1
+        survived_all_by_char[name] = survived_all_by_char.get(name, True) and a["survived"]
+    appeared_names = sorted(appearance_count_by_char.keys())
+
+    # 1. Film worldwide gross comparison (films.csv)
+    film_pairs = [(a, b) for i, a in enumerate(films) for b in films[i + 1:]]
+    rng.shuffle(film_pairs)
+    made = 0
+    for film_a, film_b in film_pairs:
+        if made >= FILM_GROSS_COMPARE_COUNT:
+            break
+        if film_a["worldwide_gross_m"] == film_b["worldwide_gross_m"]:
+            continue
+        qid = new_id()
+        questions.append({"id": qid, "type": "yesno",
+            "text": f"Did {film_a['name']} earn a higher worldwide gross than {film_b['name']} (Phases 1-4)?"})
+        answers[qid] = {"actualYes": film_a["worldwide_gross_m"] > film_b["worldwide_gross_m"]}
+        made += 1
+
+    # 2. Did a character survive every Phase 1-4 film they appeared in? (appearances.csv)
+    candidates = list(appeared_names)
+    rng.shuffle(candidates)
+    for name in candidates[:SURVIVED_ALL_COUNT]:
+        qid = new_id()
+        questions.append({"id": qid, "type": "yesno",
+            "text": f"Did {name} survive every Phase 1-4 film they appeared in?"})
+        answers[qid] = {"actualYes": survived_all_by_char[name]}
+
+    # 3. Top total screentime among 4 characters (appearances.csv)
+    pool = list(appeared_names)
+    rng.shuffle(pool)
+    made = 0
+    i = 0
+    while made < TOP_SCREENTIME_COUNT and i + 4 <= len(pool):
+        group = pool[i:i + 4]
+        i += 4
+        totals = sorted((screentime_by_char[n] for n in group), reverse=True)
+        if totals[0] == totals[1]:  # ambiguous tie for first place -- skip this group
+            continue
+        correct = max(group, key=lambda n: screentime_by_char[n])
+        options = list(group)
+        rng.shuffle(options)
+        qid = new_id()
+        questions.append({"id": qid, "type": "multichoice", "options": options,
+            "text": "Which of these characters has the most total screentime across Phases 1-4?"})
+        answers[qid] = {"correctOption": correct}
+        made += 1
+
+    # 4. Faction lookup (characters.csv / roster.csv)
+    char_pool = list(characters)
+    rng.shuffle(char_pool)
+    for c in char_pool[:FACTION_LOOKUP_COUNT]:
+        distractors = [f for f in FACTIONS if f != c["faction"]]
+        rng.shuffle(distractors)
+        options = [c["faction"]] + distractors[:3]
+        rng.shuffle(options)
+        qid = new_id()
+        questions.append({"id": qid, "type": "multichoice", "options": options,
+            "text": f"Which faction is {c['name']} in?"})
+        answers[qid] = {"correctOption": c["faction"]}
+
+    # 5. Post-credits teaser lookup (post_credits.csv)
+    all_names = [c["name"] for c in characters]
+    pc_pool = list(post_credits)
+    rng.shuffle(pc_pool)
+    made = 0
+    for row in pc_pool:
+        if made >= POST_CREDITS_COUNT:
+            break
+        correct = row["character_teased"]
+        distractor_pool = [n for n in all_names if n != correct]
+        if len(distractor_pool) < 3:
+            continue
+        rng.shuffle(distractor_pool)
+        options = [correct] + distractor_pool[:3]
+        rng.shuffle(options)
+        qid = new_id()
+        questions.append({"id": qid, "type": "multichoice", "options": options,
+            "text": f"Who was teased in {row['film']}'s post-credits scene?"})
+        answers[qid] = {"correctOption": correct}
         made += 1
 
     return questions, answers

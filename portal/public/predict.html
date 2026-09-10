@@ -18,6 +18,11 @@
   </script>
   <main style="max-width:900px;margin:2rem auto;padding:0 1.5rem;">
     <h1 class="accent-green">Round 2 — Predict</h1>
+    <div class="panel">
+      <p><strong>Nothing here is lookup-able.</strong> These 24 questions are about Phase 5, which has not happened. No CSV contains the answers — you have to build a model from Phases 1–4 and extrapolate.</p>
+      <p>Answer each with the probability you'd actually bet on. Scoring is a Brier score: an honest 60% beats a bluffed 95% that turns out wrong. Skipping a question scores the same as answering 50%, so a genuine shrug costs you nothing extra.</p>
+      <p style="opacity:0.8;">Rough time: 60–90 minutes. Watch for traps in the data — not every visible correlation is real.</p>
+    </div>
     <div id="team-id-prompt" class="panel">
       <label>Team ID: <input id="team-id-input" type="text"></label>
       <button id="team-id-save">Continue</button>

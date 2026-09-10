@@ -1,6 +1,7 @@
 // portal/public/shared/nav.js
 const PAGES = [
   { id: 'landing', label: 'Home', href: 'index.html' },
+  { id: 'explore', label: 'Explore', href: 'explore.html' },
   { id: 'predict', label: 'Predict', href: 'predict.html' },
   { id: 'draft', label: 'Draft', href: 'draft.html' },
   { id: 'report', label: 'Report', href: 'report.html' },

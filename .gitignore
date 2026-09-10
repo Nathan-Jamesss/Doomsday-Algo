@@ -8,3 +8,4 @@ portal/public/data/
 .gstack/
 __pycache__/
 portal/local-server/serviceAccountKey.json
+portal/.firebase/

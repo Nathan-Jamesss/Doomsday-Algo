@@ -2,7 +2,7 @@ import argparse, csv, json, os
 from entities import generate_films, generate_characters
 from appearances import generate_appearances, generate_co_appearances, generate_post_credits
 from phase5 import generate_phase5
-from questions import generate_questions_and_answers, generate_draft_pool
+from questions import generate_questions_and_answers, generate_explore_questions_and_answers, generate_draft_pool
 from traps import verify_simpsons_paradox, verify_survivorship_gap, verify_leaky_column
 
 def _write_csv(path, rows, fields):
@@ -19,7 +19,16 @@ def build_dataset(seed, public_dir, private_dir, team_count=55):
     co_appearances = generate_co_appearances(appearances, seed)
     post_credits = generate_post_credits(films, appearances, seed)
     phase5 = generate_phase5(characters, seed)
-    questions, question_answers = generate_questions_and_answers(phase5, seed)
+    predict_questions, predict_answers = generate_questions_and_answers(phase5, seed)
+    explore_questions, explore_answers = generate_explore_questions_and_answers(
+        films, characters, appearances, co_appearances, post_credits, seed)
+    for q in predict_questions:
+        q["round"] = "predict"
+    for q in explore_questions:
+        q["round"] = "explore"
+    questions = explore_questions + predict_questions
+    question_answers = dict(explore_answers)
+    question_answers.update(predict_answers)
     draft_pool = generate_draft_pool(phase5, team_count, seed)
 
     assert verify_simpsons_paradox(films, appearances), "Simpson's paradox trap failed — tune generation coefficients"
