@@ -311,7 +311,7 @@ nav.top-nav a.active { background: var(--marvel-red); color: #fff; }
    THE WINDOW — signature component
    ============================================================ */
 .win {
-  background: var(--surface);
+  background: radial-gradient(ellipse at 25% 20%, #16250f 0%, var(--surface) 65%);
   border: var(--border);
   box-shadow: var(--sh);
   margin-bottom: var(--s-5);
@@ -356,7 +356,7 @@ nav.top-nav a.active { background: var(--marvel-red); color: #fff; }
    boxes. Keep it visually consistent with .win rather than requiring a
    markup rewrite everywhere at once. */
 .panel {
-  background: var(--surface);
+  background: radial-gradient(ellipse at 25% 20%, #16250f 0%, var(--surface) 65%);
   border: var(--border);
   box-shadow: var(--sh-sm);
   padding: var(--s-5);

@@ -146,7 +146,7 @@
     }
     .pin-step {
       position: relative;
-      background: var(--surface);
+      background: radial-gradient(ellipse at 25% 20%, #16250f 0%, var(--surface) 65%);
       border: var(--border);
       border-color: var(--line-bright);
       border-radius: 22px;
@@ -204,6 +204,47 @@
       animation: pin-dash-flow 2.4s linear infinite;
     }
     @keyframes pin-dash-flow { to { background-position: 0 -140px; } }
+
+    /* ============================================================
+       ROADMAP LINKS — a line drops from one card's bottom-center,
+       turns, and enters the next card at its LEFT border, like a
+       route map. Only meaningful once rows sit side by side, so it's
+       desktop-only; mobile keeps the plain vertical .pin-connector.
+       ============================================================ */
+    .roadmap-link { position: relative; height: 56px; display: none; }
+    .roadmap-link .rl-v1, .roadmap-link .rl-v2 {
+      position: absolute; width: 2px;
+      background-image: linear-gradient(var(--acid) 55%, transparent 45%);
+      background-size: 2px 10px; background-repeat: repeat-y;
+    }
+    .roadmap-link .rl-v1 { top: 0; height: 27px; }
+    .roadmap-link .rl-v2 { top: 28px; height: 28px; }
+    .roadmap-link .rl-h {
+      position: absolute; top: 27px; height: 2px;
+      background-image: linear-gradient(to right, var(--acid) 55%, transparent 45%);
+      background-size: 10px 2px; background-repeat: repeat-x;
+    }
+    .roadmap-link--from-center .rl-v1 { left: 50%; transform: translateX(-50%); }
+    .roadmap-link--from-center .rl-h  { left: 1%; right: 50%; }
+    .roadmap-link--from-center .rl-v2 { left: 1%; }
+    .roadmap-link--from-right .rl-v1  { left: 75%; transform: translateX(-50%); }
+    .roadmap-link--from-right .rl-h   { left: 1%; right: 25%; }
+    .roadmap-link--from-right .rl-v2  { left: 1%; }
+    /* Round 1 -> Round 2 (and Round 3 -> Round 4): a straight link inside
+       the gap between the paired cards, at their vertical mid-point. */
+    .pin-row--pair { position: relative; }
+    .pin-row--pair::before {
+      content: '';
+      position: absolute; left: 47%; right: 47%; top: 90px; height: 2px;
+      background-image: linear-gradient(to right, var(--acid) 55%, transparent 45%);
+      background-size: 10px 2px; background-repeat: repeat-x;
+      z-index: 0; display: none;
+    }
+    @media (min-width: 720px) {
+      .roadmap-link { display: block; }
+      .pin-row--pair::before { display: block; }
+      .pin-track > .pin-connector { display: none; }
+    }
 
     /* ============================================================
        THE WORLD — full-screen dataset reveal, opened from Round 0
@@ -353,6 +394,9 @@
         </div>
       </div>
       <div class="pin-connector"></div>
+      <div class="roadmap-link roadmap-link--from-center" aria-hidden="true">
+        <span class="rl-v1"></span><span class="rl-h"></span><span class="rl-v2"></span>
+      </div>
 
       <div class="pin-row pin-row--pair">
         <div class="pin-step">
@@ -376,6 +420,9 @@
         </div>
       </div>
       <div class="pin-connector"></div>
+      <div class="roadmap-link roadmap-link--from-right" aria-hidden="true">
+        <span class="rl-v1"></span><span class="rl-h"></span><span class="rl-v2"></span>
+      </div>
 
       <div class="pin-row pin-row--pair">
         <div class="pin-step">
