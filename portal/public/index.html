@@ -31,6 +31,18 @@
     }
 
     /* Cinematic full-bleed hero image, PLAY NOW scrolls into the briefing. */
+    /* Landing page only: let the shader show through every panel instead
+       of the flat opaque surface theme.css gives every other page (those
+       stay solid on purpose -- a distraction-free panel matters more
+       while a team is actually answering timed questions). */
+    .win { background: radial-gradient(ellipse at 25% 20%, #16250f 0%, var(--surface) 65%); }
+
+    /* Whole-page Aurora shader, fixed behind every section. body's own
+       background is left transparent (see theme.css override below) so
+       there's no opaque layer competing with this canvas -- avoids the
+       usual z-index/stacking-context guesswork around fixed full-page
+       backgrounds. */
+    #page-shader { display: none; }
     .hero {
       position: relative;
       width: 100vw;
@@ -102,11 +114,6 @@
       margin-bottom: var(--s-6);
       overflow: hidden;
       box-shadow: 10px 10px 0 var(--void), 10px 10px 0 3px var(--acid-deep);
-    }
-    .r00__shader {
-      position: absolute; inset: 0; z-index: 0;
-      width: 100%; height: 100%;
-      display: block;
     }
     .r00__row {
       position: relative; z-index: 1;
@@ -307,6 +314,7 @@
   </style>
 </head>
 <body>
+  <canvas id="page-shader" aria-hidden="true"></canvas>
   <section class="hero" id="hero">
     <img src="assets/hero-white.jpg" alt="" class="hero__img" fetchpriority="high" loading="eager">
     <div class="hero__overlay">
@@ -337,7 +345,6 @@
   <main style="max-width:960px;margin:2rem auto;padding:0 1.5rem;">
 
     <section class="r00">
-      <canvas id="r00-shader" class="r00__shader" aria-hidden="true"></canvas>
       <div class="r00__row">
         <div class="r00__text">
           <h2 class="misprint" data-text="EARTH-4471">EARTH-4471</h2>
@@ -616,9 +623,13 @@
   <script src="shared/aurora.js"></script>
   <script>
     (function () {
-      var canvas = document.getElementById('r00-shader');
+      // One shader instance for the whole page (not one per section) --
+      // running two independent Aurora canvases would double the GPU cost
+      // and drift out of sync with each other, which reads as a bug more
+      // than a feature.
+      var canvas = document.getElementById('page-shader');
       if (!canvas) return;
-      try { initAurora(canvas); } catch (e) { /* CSS gradient fallback already shows behind it */ }
+      try { initAurora(canvas); } catch (e) { /* html/body background fallback already shows behind it */ }
     })();
   </script>
 </body>

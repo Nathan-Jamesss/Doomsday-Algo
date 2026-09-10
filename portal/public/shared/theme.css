@@ -102,7 +102,7 @@
 
 * { box-sizing: border-box; }
 
-html { overflow-x: hidden; }
+html { overflow-x: hidden; background: var(--bg); }
 
 body {
   font-family: var(--font-body);
@@ -311,7 +311,7 @@ nav.top-nav a.active { background: var(--marvel-red); color: #fff; }
    THE WINDOW — signature component
    ============================================================ */
 .win {
-  background: radial-gradient(ellipse at 25% 20%, #16250f 0%, var(--surface) 65%);
+  background: var(--surface);
   border: var(--border);
   box-shadow: var(--sh);
   margin-bottom: var(--s-5);
