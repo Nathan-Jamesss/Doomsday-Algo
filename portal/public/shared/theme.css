@@ -1,52 +1,63 @@
 /* portal/public/shared/theme.css
    DOOMSDAY ALGORITHM — design tokens + component library
-   Neobrutalism x Marvel x Earth-4471. See UI_DESIGN_SPEC.md for the spec
-   this file implements. */
+   Cinematic dark Marvel poster palette x brutalist structure x Earth-4471
+   corruption. Reference: Avengers Doomsday teaser card (chrome logotype,
+   acid-green glow, near-black background with a faint olive cast). */
 
 :root {
-  /* ---- ink & paper ---- */
-  --ink:            #0A0A0A;
-  --paper:          #F2EDE0;
-  --paper-bright:   #FFFBF0;
-  --paper-dark:     #DCD5C4;
+  /* ---- void & surface (the poster's black + a dark olive lift) ---- */
+  --void:           #050603;   /* deepest background */
+  --bg:             #0A0D07;   /* page background */
+  --surface:        #171C12;   /* window/card bodies */
+  --surface-raised: #212818;   /* hover / active lifted surfaces */
+  --surface-sunken: #050603;   /* inputs, redaction bars — recessed */
 
-  /* ---- marvel primaries ---- */
-  --marvel-red:     #ED1D24;
-  --marvel-red-deep:#B31217;
+  /* ---- lines (borders read as a green edge-light, not flat black) ---- */
+  --line:           #445032;   /* default border — visible, not loud */
+  --line-bright:    #5FE070;   /* emphasis border — hero windows, focus */
+
+  /* ---- chrome (the metallic AVENGERS logotype) ---- */
+  --chrome:         #D9DCD3;   /* headline text */
+  --chrome-dim:     #8A9080;   /* secondary chrome / embossed depth */
+
+  /* ---- acid green (the glowing "DOOMSDAY" wordmark) ---- */
+  --acid:           #39FF6A;
+  --acid-deep:      #1F8F42;
+
+  /* ---- marvel red (the studio badge — CTA / danger, used sparingly) ---- */
+  --marvel-red:     #E0202A;
+  --marvel-red-deep:#A11720;
   --marvel-yellow:  #FFD400;
-  --marvel-blue:    #0476D9;
-  --marvel-green:   #00A550;
+  --marvel-blue:    #4FA8FF;
 
-  /* ---- earth-4471 corruption ---- */
+  /* ---- earth-4471 corruption — deliberately foreign to this palette ---- */
   --glitch:         #FF2E88;
-  --redact:         #0A0A0A;
 
   /* ---- semantic aliases ---- */
-  --bg:             var(--paper);
-  --surface:        var(--paper-bright);
-  --text:           var(--ink);
-  --text-quiet:     #55504A;
+  --ink:            var(--void);       /* shadow color only */
+  --text:           #E9EBE3;
+  --text-quiet:     #8B9184;
   --accent:         var(--marvel-red);
-  --accent-alt:     var(--marvel-yellow);
+  --accent-alt:     var(--acid);
   --info:           var(--marvel-blue);
-  --success:        var(--marvel-green);
+  --success:        var(--acid);
 
   /* ---- borders ---- */
   --bw-thin:        2px;
   --bw:             3px;
   --bw-thick:       5px;
-  --border:         var(--bw) solid var(--ink);
-  --border-thin:    var(--bw-thin) solid var(--ink);
-  --border-thick:   var(--bw-thick) solid var(--ink);
+  --border:         var(--bw) solid var(--line);
+  --border-thin:    var(--bw-thin) solid var(--line);
+  --border-thick:   var(--bw-thick) solid var(--line);
 
-  /* ---- hard shadows ---- */
-  --sh-xs:          2px 2px 0 var(--ink);
-  --sh-sm:          4px 4px 0 var(--ink);
-  --sh:             6px 6px 0 var(--ink);
-  --sh-lg:          10px 10px 0 var(--ink);
-  --sh-xl:          14px 14px 0 var(--ink);
+  /* ---- hard shadows (pure black, opaque — reads as depth into the void) ---- */
+  --sh-xs:          2px 2px 0 var(--void);
+  --sh-sm:          4px 4px 0 var(--void);
+  --sh:             6px 6px 0 var(--void);
+  --sh-lg:          10px 10px 0 var(--void);
+  --sh-xl:          14px 14px 0 var(--void);
   --sh-red:         6px 6px 0 var(--marvel-red);
-  --sh-yellow:      6px 6px 0 var(--marvel-yellow);
+  --sh-acid:        6px 6px 0 var(--acid-deep);
 
   /* ---- spacing ---- */
   --s-1: 4px;   --s-2: 8px;   --s-3: 12px;  --s-4: 16px;
@@ -78,10 +89,15 @@
   --w-narrow:  720px;
   --w-content: 960px;
   --w-wide:    1240px;
+
+  /* legacy aliases kept so any stray reference still resolves sanely */
+  --paper:        var(--surface);
+  --paper-bright: var(--surface-raised);
+  --paper-dark:   var(--surface-sunken);
 }
 
 @media (max-width: 719px) {
-  :root { --sh: 4px 4px 0 var(--ink); --sh-lg: 6px 6px 0 var(--ink); --sh-xl: 8px 8px 0 var(--ink); }
+  :root { --sh: 4px 4px 0 var(--void); --sh-lg: 6px 6px 0 var(--void); --sh-xl: 8px 8px 0 var(--void); }
 }
 
 * { box-sizing: border-box; }
@@ -110,6 +126,8 @@ h1, .h1 {
   letter-spacing: -0.02em;
   text-transform: uppercase;
   margin: 0 0 var(--s-4);
+  color: var(--chrome);
+  text-shadow: 2px 2px 0 var(--chrome-dim), 0 0 24px rgba(95,224,112,0.35);
 }
 h2, .h2 {
   font-family: var(--font-display);
@@ -118,6 +136,7 @@ h2, .h2 {
   letter-spacing: -0.01em;
   text-transform: uppercase;
   margin: 0 0 var(--s-3);
+  color: var(--chrome);
 }
 h3, .h3 {
   font-family: var(--font-body);
@@ -126,6 +145,7 @@ h3, .h3 {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin: 0 0 var(--s-2);
+  color: var(--text);
 }
 p { margin: 0 0 var(--s-3); max-width: 68ch; }
 a { color: var(--marvel-blue); }
@@ -135,16 +155,18 @@ code, .mono, .num { font-family: var(--font-mono); font-weight: 700; }
 .fx {
   font-family: var(--font-fx);
   font-size: clamp(var(--t-2xl), 6vw, var(--t-4xl));
-  color: var(--marvel-red);
+  color: var(--acid);
   letter-spacing: 0.02em;
   transform: rotate(-4deg);
   display: inline-block;
+  text-shadow: 0 0 18px rgba(57,255,106,0.6);
 }
 
 .caption {
   display: inline-block;
-  background: var(--marvel-yellow);
+  background: var(--acid);
   border: var(--border);
+  border-color: var(--acid-deep);
   box-shadow: var(--sh-sm);
   padding: var(--s-2) var(--s-3);
   font-family: var(--font-body);
@@ -152,17 +174,17 @@ code, .mono, .num { font-family: var(--font-mono); font-weight: 700; }
   font-size: var(--t-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--ink);
+  color: var(--void);
 }
 
 .accent-red { color: var(--marvel-red); }
-.accent-green { color: var(--marvel-green); }
+.accent-green { color: var(--acid); }
 
 /* ============================================================
    TEXTURES
    ============================================================ */
 .tex-halftone {
-  background-image: radial-gradient(var(--ink) 1px, transparent 1px);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
   background-size: 6px 6px;
 }
 .tex-halftone--red {
@@ -170,13 +192,13 @@ code, .mono, .num { font-family: var(--font-mono); font-weight: 700; }
   background-size: 8px 8px;
 }
 .tex-halftone--fade {
-  background-image: radial-gradient(var(--ink) 1px, transparent 1px);
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
   background-size: 6px 6px;
   -webkit-mask-image: linear-gradient(to bottom, #000, transparent);
           mask-image: linear-gradient(to bottom, #000, transparent);
 }
 
-.misprint { position: relative; color: var(--ink); }
+.misprint { position: relative; color: var(--chrome); }
 .misprint::before {
   content: attr(data-text);
   position: absolute;
@@ -199,25 +221,26 @@ code, .mono, .num { font-family: var(--font-mono); font-weight: 700; }
   transform: rotate(-6deg);
   background: transparent;
 }
-.stamp--taken   { color: var(--ink);    border-color: var(--ink); transform: rotate(4deg); }
+.stamp--taken   { color: var(--text-quiet); border-color: var(--line); transform: rotate(4deg); }
 .stamp--sealed  { color: var(--glitch); border-color: var(--glitch); }
-.stamp--done    { color: var(--marvel-green); border-color: var(--marvel-green); transform: rotate(-3deg); }
+.stamp--done    { color: var(--acid); border-color: var(--acid-deep); transform: rotate(-3deg); }
 
 .redact {
-  background: var(--redact);
-  color: var(--redact);
+  background: var(--void);
+  color: var(--void);
   user-select: none;
   padding: 0 var(--s-2);
 }
-.redact::selection { background: var(--redact); color: var(--redact); }
+.redact::selection { background: var(--void); color: var(--void); }
 
 /* ============================================================
    GLOBAL CHROME — banner + nav (markup rendered by banner.js / nav.js)
    ============================================================ */
 .banner-earth4471 {
   background: var(--glitch);
-  color: var(--ink);
+  color: var(--void);
   border-bottom: var(--border-thick);
+  border-color: var(--void);
   padding: var(--s-2) var(--s-4);
   font-family: var(--font-mono);
   font-weight: 700;
@@ -230,7 +253,7 @@ code, .mono, .num { font-family: var(--font-mono); font-weight: 700; }
 nav.top-nav {
   display: flex;
   gap: 0;
-  background: var(--paper);
+  background: var(--void);
   border-bottom: var(--border-thick);
   padding: 0 var(--s-4);
   position: sticky;
@@ -243,16 +266,16 @@ nav.top-nav a {
   font-size: var(--t-sm);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--ink);
+  color: var(--chrome-dim);
   text-decoration: none;
   padding: var(--s-3) var(--s-4);
   border-right: var(--border);
   white-space: nowrap;
-  transition: background var(--dur-fast) var(--ease);
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
 nav.top-nav a:first-child { border-left: var(--border); }
-nav.top-nav a:hover  { background: var(--marvel-yellow); }
-nav.top-nav a.active { background: var(--marvel-red); color: var(--paper-bright); }
+nav.top-nav a:hover  { background: var(--surface-raised); color: var(--acid); }
+nav.top-nav a.active { background: var(--marvel-red); color: #fff; }
 
 /* ============================================================
    THE WINDOW — signature component
@@ -267,8 +290,8 @@ nav.top-nav a.active { background: var(--marvel-red); color: var(--paper-bright)
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--void);
+  color: var(--chrome);
   border-bottom: var(--border);
   padding: var(--s-2) var(--s-3);
   font-family: var(--font-mono);
@@ -280,24 +303,28 @@ nav.top-nav a.active { background: var(--marvel-red); color: var(--paper-bright)
 .win__dots { display: inline-flex; gap: var(--s-1); flex-shrink: 0; }
 .win__dots i {
   width: 11px; height: 11px;
-  border: var(--bw-thin) solid var(--paper);
+  border: var(--bw-thin) solid var(--line);
   background: transparent;
   display: block;
 }
-.win__dots i:first-child { background: var(--marvel-red); }
+.win__dots i:first-child { background: var(--marvel-red); border-color: var(--marvel-red); }
 .win__title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .win__body { padding: var(--s-5); }
 
-.win--accent  .win__bar { background: var(--marvel-red); }
-.win--warn    .win__bar { background: var(--marvel-yellow); color: var(--ink); }
-.win--warn    .win__dots i { border-color: var(--ink); }
-.win--glitch  .win__bar { background: var(--glitch); }
+.win--accent  { border-color: var(--marvel-red); }
+.win--accent  .win__bar { background: var(--marvel-red); color: #fff; border-color: var(--marvel-red); }
+.win--accent  .win__dots i { border-color: rgba(255,255,255,0.6); }
+.win--warn    { border-color: var(--marvel-yellow); }
+.win--warn    .win__bar { background: var(--marvel-yellow); color: var(--void); border-color: var(--marvel-yellow); }
+.win--warn    .win__dots i { border-color: var(--void); }
+.win--glitch  { border-color: var(--glitch); }
+.win--glitch  .win__bar { background: var(--glitch); color: var(--void); border-color: var(--glitch); }
 .win--flush   .win__body { padding: 0; }
-.win--lift    { box-shadow: var(--sh-lg); }
+.win--lift    { box-shadow: var(--sh-lg); border-color: var(--line-bright); }
 
-/* Backward-compat: existing pages use class="panel" for simple boxes.
-   Keep it working with the new visual language rather than requiring a
-   markup rewrite on every page at once. */
+/* Backward-compat: a couple of pages still use class="panel" for simple
+   boxes. Keep it visually consistent with .win rather than requiring a
+   markup rewrite everywhere at once. */
 .panel {
   background: var(--surface);
   border: var(--border);
@@ -315,8 +342,9 @@ button, .btn {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   background: var(--marvel-red);
-  color: var(--paper-bright);
+  color: #fff;
   border: var(--border);
+  border-color: var(--marvel-red-deep);
   box-shadow: var(--sh-sm);
   padding: var(--s-3) var(--s-5);
   cursor: pointer;
@@ -327,26 +355,29 @@ button, .btn {
 button:hover, .btn:hover   { background: var(--marvel-red-deep); }
 button:active, .btn:active { transform: var(--press); box-shadow: var(--sh-xs); }
 button:focus-visible, .btn:focus-visible {
-  outline: var(--bw) solid var(--marvel-blue);
+  outline: var(--bw) solid var(--acid);
   outline-offset: 3px;
 }
 button:disabled, .btn:disabled {
-  background: var(--paper-dark);
+  background: var(--surface-raised);
   color: var(--text-quiet);
+  border-color: var(--line);
   box-shadow: none;
   transform: var(--press);
   cursor: not-allowed;
 }
 
-.btn--secondary { background: var(--paper-bright); color: var(--ink); }
-.btn--secondary:hover { background: var(--marvel-yellow); }
-.btn--ghost { background: transparent; color: var(--ink); box-shadow: none; }
+.btn--secondary { background: var(--surface-raised); color: var(--text); border-color: var(--line); }
+.btn--secondary:hover { background: var(--surface); border-color: var(--line-bright); }
+.btn--ghost { background: transparent; color: var(--text-quiet); box-shadow: none; border-color: var(--line); }
+.btn--ghost:hover { color: var(--acid); background: transparent; }
 .btn--lg { font-size: var(--t-lg); padding: var(--s-4) var(--s-7); box-shadow: var(--sh); }
 .btn--block { display: block; width: 100%; }
 
 .btn--done {
-  background: var(--marvel-green) !important;
-  color: var(--paper-bright);
+  background: var(--acid-deep) !important;
+  color: #fff;
+  border-color: var(--acid);
   box-shadow: var(--sh-xs);
   transform: var(--press);
   cursor: default;
@@ -358,8 +389,8 @@ button:disabled, .btn:disabled {
 input[type="text"], input:not([type]), textarea {
   font-family: var(--font-mono);
   font-size: var(--t-base);
-  background: var(--paper-bright);
-  color: var(--ink);
+  background: var(--surface-sunken);
+  color: var(--text);
   border: var(--border);
   box-shadow: inset var(--sh-xs);
   padding: var(--s-3);
@@ -367,7 +398,7 @@ input[type="text"], input:not([type]), textarea {
 }
 input[type="text"]:focus, input:not([type]):focus, textarea:focus {
   outline: none;
-  border-color: var(--marvel-blue);
+  border-color: var(--acid);
   box-shadow: var(--sh-sm);
 }
 textarea { resize: vertical; min-height: 72px; }
@@ -380,13 +411,15 @@ label {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: var(--s-2);
+  color: var(--text-quiet);
 }
 
 input[type="number"] {
   font-family: var(--font-mono);
   font-weight: 700;
   border: var(--border);
-  background: var(--paper-bright);
+  background: var(--surface-sunken);
+  color: var(--text);
   padding: var(--s-2);
   width: 5rem;
   text-align: center;
@@ -402,12 +435,12 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-runnable-track {
   height: 16px;
-  background: var(--paper-dark);
+  background: var(--surface-raised);
   border: var(--border);
 }
 input[type="range"]::-moz-range-track {
   height: 16px;
-  background: var(--paper-dark);
+  background: var(--surface-raised);
   border: var(--border);
 }
 input[type="range"]::-webkit-slider-thumb {
@@ -416,12 +449,14 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: -9px;
   background: var(--marvel-red);
   border: var(--border);
+  border-color: var(--marvel-red-deep);
   box-shadow: var(--sh-xs);
 }
 input[type="range"]::-moz-range-thumb {
   width: 28px; height: 28px;
   background: var(--marvel-red);
   border: var(--border);
+  border-color: var(--marvel-red-deep);
   box-shadow: var(--sh-xs);
   border-radius: 0;
 }
@@ -431,15 +466,16 @@ input[type="checkbox"] {
   -webkit-appearance: none;
   width: 24px; height: 24px;
   border: var(--border);
-  background: var(--paper-bright);
+  background: var(--surface-sunken);
   cursor: pointer;
   vertical-align: middle;
   margin-right: var(--s-2);
   flex-shrink: 0;
 }
 input[type="checkbox"]:checked {
-  background: var(--marvel-red);
-  box-shadow: inset 0 0 0 4px var(--paper-bright);
+  background: var(--acid-deep);
+  border-color: var(--acid);
+  box-shadow: inset 0 0 0 4px var(--surface-sunken);
 }
 
 /* ============================================================
@@ -457,8 +493,9 @@ input[type="checkbox"]:checked {
   position: absolute;
   top: calc(-1 * var(--bw));
   left: calc(-1 * var(--bw));
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--void);
+  color: var(--acid);
+  border: var(--bw-thin) solid var(--line);
   font-family: var(--font-mono);
   font-size: var(--t-xs);
   font-weight: 700;
@@ -470,6 +507,7 @@ input[type="checkbox"]:checked {
   font-weight: 500;
   margin: var(--s-4) 0 var(--s-5);
   max-width: 60ch;
+  color: var(--text);
 }
 .q__control { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
 .q__value {
@@ -478,13 +516,14 @@ input[type="checkbox"]:checked {
   font-size: var(--t-2xl);
   min-width: 4.5ch;
   text-align: right;
+  color: var(--acid);
 }
 .q__options { display: grid; gap: var(--s-3); margin-bottom: var(--s-4); }
 .q__option {
   display: flex; align-items: center; justify-content: space-between;
   gap: var(--s-3);
   border: var(--border-thin);
-  background: var(--paper);
+  background: var(--surface-sunken);
   padding: var(--s-2) var(--s-3);
 }
 .q__sum {
@@ -493,12 +532,13 @@ input[type="checkbox"]:checked {
   font-size: var(--t-sm);
   padding: var(--s-2) var(--s-3);
   border: var(--border-thin);
-  background: var(--paper);
+  background: var(--surface-sunken);
   display: inline-block;
+  color: var(--text);
 }
-.q__sum--bad { background: var(--marvel-yellow); }
-.q--answered { box-shadow: var(--sh-xs); transform: var(--press); }
-.q--answered .q__id { background: var(--marvel-green); }
+.q__sum--bad { background: var(--marvel-yellow); color: var(--void); border-color: var(--marvel-yellow); }
+.q--answered { box-shadow: var(--sh-xs); transform: var(--press); border-color: var(--acid-deep); }
+.q--answered .q__id { background: var(--acid-deep); color: #fff; border-color: var(--acid); }
 
 /* ============================================================
    CHARACTER CARD (draft.html)
@@ -514,24 +554,27 @@ input[type="checkbox"]:checked {
   min-height: 150px;
   position: relative;
   transition: transform var(--dur-fast) var(--ease),
-              box-shadow var(--dur-fast) var(--ease);
+              box-shadow var(--dur-fast) var(--ease),
+              border-color var(--dur-fast) var(--ease);
 }
-.char:hover { transform: translate(-2px,-2px); box-shadow: var(--sh); }
+.char:hover { transform: translate(-2px,-2px); box-shadow: var(--sh); border-color: var(--line-bright); }
 .char__name {
   font-family: var(--font-display);
   font-size: var(--t-lg);
   text-transform: uppercase;
   line-height: var(--lh-tight);
+  color: var(--chrome);
 }
 .char__meta { font-family: var(--font-mono); font-size: var(--t-xs); color: var(--text-quiet); }
 .char button { margin-top: auto; }
 
 .char--taken {
-  background: var(--paper-dark);
+  background: var(--void);
   box-shadow: none;
   transform: var(--press);
+  border-color: var(--line);
 }
-.char--taken:hover { transform: var(--press); box-shadow: none; }
+.char--taken:hover { transform: var(--press); box-shadow: none; border-color: var(--line); }
 .char--taken .char__name { color: var(--text-quiet); }
 .char__stamp { position: absolute; top: var(--s-4); right: var(--s-3); }
 
@@ -540,8 +583,8 @@ input[type="checkbox"]:checked {
    ============================================================ */
 .board { width: 100%; border-collapse: collapse; font-family: var(--font-mono); }
 .board th {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--void);
+  color: var(--chrome);
   font-family: var(--font-display);
   font-size: var(--t-sm);
   text-transform: uppercase;
@@ -556,28 +599,19 @@ input[type="checkbox"]:checked {
   font-size: var(--t-lg);
   font-weight: 700;
   background: var(--surface);
+  color: var(--text);
 }
-.board tr:nth-child(even) td { background: var(--paper); }
-.board tr[data-rank="1"] td { background: var(--marvel-yellow); }
-.board tr[data-rank="2"] td { background: var(--paper-dark); }
-.board tr[data-rank="3"] td { background: #E8C9A0; }
+.board tr:nth-child(even) td { background: var(--surface-raised); }
+.board tr[data-rank="1"] td { background: var(--marvel-yellow); color: var(--void); }
+.board tr[data-rank="2"] td { background: var(--chrome-dim); color: var(--void); }
+.board tr[data-rank="3"] td { background: #7A5A2E; color: #fff; }
 .board td:first-child { width: 5rem; font-family: var(--font-display); font-size: var(--t-xl); }
 
-/* Projector (dark) mode for admin.html */
-body.projector {
-  --bg: var(--ink);
-  --surface: #16130F;
-  --text: var(--paper);
-  --text-quiet: #8A8279;
-  background: var(--ink);
-}
-body.projector .win { border-color: var(--paper); box-shadow: 10px 10px 0 var(--marvel-red); }
-body.projector .win__bar { background: var(--marvel-red); color: var(--paper-bright); border-bottom-color: var(--paper); }
-body.projector .board th { background: var(--paper); color: var(--ink); border-color: var(--paper); }
-body.projector .board td { background: var(--surface); color: var(--paper); border-color: var(--paper); }
-body.projector .board tr:nth-child(even) td { background: #1E1A15; }
-body.projector .board tr[data-rank="1"] td { background: var(--marvel-yellow); color: var(--ink); }
-body.projector h1, body.projector h2 { color: var(--paper); }
+/* Projector page (admin.html) already IS dark by default now; this class
+   just pushes it slightly further for a true black room. */
+body.projector { background: var(--void); }
+body.projector .win { box-shadow: var(--sh-lg); border-color: var(--marvel-red); }
+body.projector .win__bar { background: var(--marvel-red); color: #fff; }
 
 /* ============================================================
    STEP TRACKER (index.html)
@@ -589,19 +623,20 @@ body.projector h1, body.projector h2 { color: var(--paper); }
   font-family: var(--font-display);
   font-size: var(--t-2xl);
   background: var(--marvel-red);
-  color: var(--paper-bright);
+  color: #fff;
   border: var(--border);
+  border-color: var(--marvel-red-deep);
   box-shadow: var(--sh-sm);
 }
-.step__num--zero { background: var(--ink); }
-.step__rail { grid-column: 1; justify-self: center; width: var(--bw); background: var(--ink); height: var(--s-5); }
+.step__num--zero { background: var(--void); border-color: var(--line); }
+.step__rail { grid-column: 1; justify-self: center; width: var(--bw); background: var(--line); height: var(--s-5); }
 .step__time {
   font-family: var(--font-mono);
   font-size: var(--t-xs);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--marvel-red);
+  color: var(--acid);
   display: block;
   margin-bottom: var(--s-1);
 }
@@ -625,10 +660,11 @@ body.projector h1, body.projector h2 { color: var(--paper); }
   box-shadow: var(--sh);
   padding: var(--s-4);
   font-weight: 500;
+  color: var(--text);
   animation: toast-in var(--dur-slow) var(--ease);
   pointer-events: auto;
 }
-.toast--ok    { border-left: var(--s-2) solid var(--marvel-green); }
+.toast--ok    { border-left: var(--s-2) solid var(--acid); }
 .toast--error { border-left: var(--s-2) solid var(--marvel-red); }
 .toast--info  { border-left: var(--s-2) solid var(--marvel-blue); }
 @keyframes toast-in { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -637,8 +673,8 @@ body.projector h1, body.projector h2 { color: var(--paper); }
    EMPTY / LOADING STATES
    ============================================================ */
 .placeholder {
-  border: var(--bw) dashed var(--ink);
-  background: var(--paper);
+  border: var(--bw) dashed var(--line);
+  background: var(--surface);
   padding: var(--s-6);
   text-align: center;
   font-family: var(--font-mono);
@@ -646,17 +682,6 @@ body.projector h1, body.projector h2 { color: var(--paper); }
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-quiet);
-}
-
-/* ============================================================
-   ACCESSIBILITY
-   ============================================================ */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
 }
 
 /* ============================================================
@@ -669,12 +694,24 @@ body.projector h1, body.projector h2 { color: var(--paper); }
   color: var(--text-quiet);
 }
 .q-progress__track {
-  height: 10px; background: var(--paper-dark); border: var(--border-thin);
+  height: 10px; background: var(--surface-sunken); border: var(--border-thin);
 }
 .q-progress__fill {
-  height: 100%; background: var(--marvel-red);
+  height: 100%; background: var(--acid);
+  box-shadow: 0 0 12px rgba(57,255,106,0.7);
   transition: width var(--dur-slow) var(--ease);
 }
 .q--screen { min-height: 200px; }
 .q--screen .q__control { margin-top: var(--s-4); }
 .q--screen button { margin-right: var(--s-2); }
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
