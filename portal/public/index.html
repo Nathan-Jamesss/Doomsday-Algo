@@ -41,10 +41,11 @@
       overflow: hidden;
       background: #000;
     }
-    .hero video, .hero canvas {
+    .hero__img {
       position: absolute; inset: 0;
       width: 100%; height: 100%;
       object-fit: cover;
+      object-position: center center;
     }
     .hero__overlay {
       position: absolute; inset: 0;
@@ -201,49 +202,17 @@
 </head>
 <body>
   <section class="hero" id="hero">
-    <video id="hero-video" autoplay muted playsinline preload="auto" poster="assets/hero-poster.jpg">
-      <source src="assets/landing-hero.mp4" type="video/mp4">
-    </video>
-    <canvas id="hero-freeze" style="display:none;"></canvas>
+    <img src="assets/hero-doom.jpg" alt="" class="hero__img">
     <div class="hero__overlay">
       <button id="play-now-btn" class="hero__play">▶ PLAY NOW</button>
       <span class="hero__hint">Data Science Club · V-TAPP 2026</span>
     </div>
   </section>
   <script>
-    (function () {
-      var video = document.getElementById('hero-video');
-      var canvas = document.getElementById('hero-freeze');
-      var playBtn = document.getElementById('play-now-btn');
-
-      function freezeOnLastFrame() {
-        try {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-          video.style.display = 'none';
-          canvas.style.display = 'block';
-        } catch (e) {
-          // Canvas capture can fail on some codec/driver combos -- the
-          // video itself already sits on its last frame once 'ended'
-          // fires (no loop attribute), so the hero still looks right,
-          // just via the <video> element instead of the canvas.
-        }
-      }
-      video.addEventListener('ended', freezeOnLastFrame);
-
-      // A laptop that blocks autoplay, fails the codec, or is just slow
-      // must never hide the PLAY NOW button behind a black box -- the
-      // button already sits in a fixed position via the overlay
-      // regardless of video state, so no extra fallback is needed here
-      // beyond not letting a video error cover it.
-      video.addEventListener('error', function () { video.style.display = 'none'; });
-
-      playBtn.addEventListener('click', function () {
-        var target = document.getElementById('briefing');
-        if (target) target.scrollIntoView({ behavior: 'smooth' });
-      });
-    })();
+    document.getElementById('play-now-btn').addEventListener('click', function () {
+      var target = document.getElementById('briefing');
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
   </script>
   <script src="shared/banner.js"></script>
   <script src="shared/nav.js"></script>
