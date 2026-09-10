@@ -19,8 +19,6 @@
       font-family: var(--font-mono); font-size: var(--t-xs); text-transform: uppercase;
       letter-spacing: 0.08em; color: var(--text-quiet);
     }
-    .files { font-family: var(--font-mono); font-size: var(--t-sm); }
-    .files a { color: var(--marvel-blue); text-decoration: underline; }
     .score-table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); margin: var(--s-4) 0; }
     .score-table th, .score-table td { border: var(--border-thin); padding: var(--s-2) var(--s-3); text-align: left; }
     .score-table th { background: var(--void); color: var(--chrome); font-size: var(--t-xs); text-transform: uppercase; }
@@ -40,7 +38,6 @@
       margin-left: calc(50% - 50vw);
       height: 100vh;
       min-height: 480px;
-      max-height: 960px;
       overflow: hidden;
       background: #000;
     }
@@ -54,22 +51,33 @@
       display: flex; flex-direction: column;
       align-items: center; justify-content: flex-end;
       padding-bottom: var(--s-8);
-      background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.35) 45%, transparent 75%);
+      background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 40%, transparent 70%);
     }
+    /* Glassmorphism is a deliberate exception to the rest of the site's
+       flat, opaque brutalism -- the one requested spot where translucency
+       and blur belong, on the single button sitting over live video. */
     .hero__play {
-      font-size: var(--t-2xl);
-      padding: var(--s-4) var(--s-8);
-      background: var(--marvel-red);
-      color: #fff;
-      border: var(--border);
-      border-color: #fff;
-      box-shadow: 0 0 50px rgba(237,29,36,0.7), var(--sh-lg);
+      font-size: var(--t-base);
+      padding: var(--s-3) var(--s-6);
+      background: rgba(57,255,106,0.14);
+      color: #EAFFEF;
+      border: 1px solid rgba(95,224,112,0.55);
+      border-radius: 999px;
+      backdrop-filter: blur(14px) saturate(160%);
+      -webkit-backdrop-filter: blur(14px) saturate(160%);
+      box-shadow: 0 0 24px rgba(57,255,106,0.35), 0 4px 18px rgba(0,0,0,0.4);
       cursor: pointer;
-      letter-spacing: 0.08em;
-      transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease);
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      text-transform: uppercase;
+      transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
     }
-    .hero__play:hover { transform: translateY(-2px); box-shadow: 0 0 70px rgba(237,29,36,0.9), var(--sh-lg); }
-    .hero__play:active { transform: var(--press); box-shadow: 0 0 30px rgba(237,29,36,0.6), var(--sh-xs); }
+    .hero__play:hover {
+      transform: translateY(-2px);
+      background: rgba(57,255,106,0.22);
+      box-shadow: 0 0 32px rgba(57,255,106,0.5), 0 6px 22px rgba(0,0,0,0.45);
+    }
+    .hero__play:active { transform: translateY(0); box-shadow: 0 0 16px rgba(57,255,106,0.4); }
     .hero__hint {
       margin-top: var(--s-3);
       color: #fff;
@@ -79,6 +87,109 @@
       text-transform: uppercase;
       opacity: 0.75;
     }
+
+    /* ============================================================
+       PINNED STEP CARDS (rounds 0-4) — rounded, tilted, pin-topped
+       cards on a dashed connector, adapted from a "How It Works"
+       reference into plain CSS (this codebase has no build step and
+       the event is imminent, so no React/framer-motion port).
+       ============================================================ */
+    .pin-track { max-width: 640px; margin: 0 auto; }
+    .pin-step {
+      position: relative;
+      background: var(--surface);
+      border: var(--border);
+      border-color: var(--line-bright);
+      border-radius: 22px;
+      padding: var(--s-6) var(--s-5) var(--s-5);
+      box-shadow: var(--sh);
+      transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+    }
+    .pin-step:nth-child(odd)  { transform: rotate(-1.4deg); }
+    .pin-step:nth-child(even) { transform: rotate(1.4deg); }
+    .pin-step:hover { transform: rotate(0deg) scale(1.015); box-shadow: var(--sh-lg); }
+    .pin-step__pin {
+      width: 30px; height: 30px;
+      display: block; margin: 0 auto var(--s-2);
+      color: var(--acid);
+      filter: drop-shadow(0 0 6px rgba(57,255,106,0.65));
+    }
+    .pin-step__number {
+      display: block; text-align: center;
+      font-family: var(--font-fx);
+      font-size: 46px; line-height: 1;
+      color: var(--acid);
+      text-shadow: 0 0 16px rgba(57,255,106,0.55);
+      margin-bottom: var(--s-3);
+    }
+    .pin-step .step__time { display: block; text-align: center; }
+    .pin-step h2 { text-align: center; }
+    .pin-step button { display: block; margin: var(--s-4) auto 0; }
+    .pin-connector {
+      width: 2px; height: 44px; margin: 0 auto;
+      background-image: linear-gradient(var(--line-bright) 55%, transparent 45%);
+      background-size: 2px 14px;
+      background-repeat: repeat-y;
+      opacity: 0.7;
+      animation: pin-dash-flow 2.4s linear infinite;
+    }
+    @keyframes pin-dash-flow { to { background-position: 0 -140px; } }
+
+    /* ============================================================
+       THE WORLD — full-screen dataset reveal, opened from Round 0
+       ============================================================ */
+    .world {
+      position: fixed; inset: 0; z-index: var(--z-modal);
+      background: radial-gradient(ellipse at 50% 30%, #0E1509 0%, #030402 75%);
+      overflow-y: auto;
+      padding: var(--s-8) var(--s-4) var(--s-9);
+    }
+    .world[hidden] { display: none; }
+    .world__close {
+      position: fixed; top: var(--s-4); right: var(--s-4);
+      width: 44px; height: 44px; border-radius: 50%;
+      background: transparent; color: var(--chrome);
+      border: 1px solid var(--line-bright);
+      font-size: var(--t-lg); line-height: 1; padding: 0;
+      box-shadow: none;
+      z-index: 1;
+    }
+    .world__close:hover { background: var(--surface-raised); }
+    .world__inner { max-width: 1040px; margin: 0 auto; text-align: center; }
+    .world__sub {
+      font-family: var(--font-mono); color: var(--acid);
+      letter-spacing: 0.15em; font-size: var(--t-sm);
+      margin-top: var(--s-2); margin-bottom: var(--s-8);
+    }
+    .world__grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: var(--s-5); text-align: left;
+    }
+    .world-card {
+      background: var(--surface); border: var(--border); border-color: var(--line-bright);
+      border-radius: 18px; padding: var(--s-5);
+      box-shadow: var(--sh);
+      opacity: 0; transform: scale(0.55) translateY(40px);
+      transition: opacity 0.5s var(--ease), transform 0.5s cubic-bezier(0.3,1.5,0.4,1);
+    }
+    .world-card.popped { opacity: 1; transform: none; }
+    .world-card__name { font-family: var(--font-mono); font-weight: 700; color: var(--acid); font-size: var(--t-lg); }
+    .world-card__rows { font-family: var(--font-mono); font-size: var(--t-xs); color: var(--text-quiet); }
+    .world-card__desc { color: var(--text); font-size: var(--t-sm); margin: var(--s-2) 0 var(--s-4); }
+    .world-card__actions { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+    .world-card__actions button, .world-card__actions a {
+      font-size: var(--t-xs); padding: var(--s-2) var(--s-3);
+    }
+    .world-card__preview {
+      margin-top: var(--s-3); max-height: 0; overflow: hidden;
+      transition: max-height 0.3s var(--ease);
+    }
+    .world-card__preview.open { max-height: 240px; overflow: auto; }
+    .world-card__preview table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11px; }
+    .world-card__preview td, .world-card__preview th {
+      border: 1px solid var(--line); padding: 2px 5px; white-space: nowrap; color: var(--text);
+    }
+    .world-card__preview th { color: var(--acid); background: var(--void); }
   </style>
 </head>
 <body>
@@ -165,27 +276,20 @@
       </div>
     </section>
 
-    <div class="step">
-      <div class="step__num step__num--zero">0</div>
-      <div class="panel">
+    <div class="pin-track">
+      <div class="pin-step">
+        <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+        <span class="pin-step__number">00</span>
         <span class="step__time">5 minutes</span>
         <h2>Set up</h2>
         <p style="margin:0;">Pick a team ID and use the exact same one on every page. It's saved in this browser, so keep using the same laptop.</p>
-        <p class="files" style="margin-bottom:0;margin-top:var(--s-3);">Download the Earth-4471 Archive (Phases 1–4):<br>
-          <a href="data/films.csv" download>films.csv</a> ·
-          <a href="data/characters.csv" download>characters.csv</a> ·
-          <a href="data/appearances.csv" download>appearances.csv</a> ·
-          <a href="data/co_appearances.csv" download>co_appearances.csv</a> ·
-          <a href="data/post_credits.csv" download>post_credits.csv</a> ·
-          <a href="data/roster.csv" download>roster.csv</a>
-        </p>
+        <button id="open-world-btn" class="btn btn--lg">🌐 Enter the Archive</button>
       </div>
-    </div>
-    <div class="step__rail"></div>
+      <div class="pin-connector"></div>
 
-    <div class="step">
-      <div class="step__num">1</div>
-      <div class="panel">
+      <div class="pin-step">
+        <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+        <span class="pin-step__number">01</span>
         <span class="step__time">30–45 minutes · 10 questions</span>
         <h2>Round 1 — Explore</h2>
         <p style="margin:0;">Ten questions whose answers are <em>already in the files you just downloaded</em>. Nothing to predict here — this round is about actually reading the data.</p>
@@ -195,12 +299,11 @@
         </ul>
         <button onclick="location.href='explore.html'">Start Round 1</button>
       </div>
-    </div>
-    <div class="step__rail"></div>
+      <div class="pin-connector"></div>
 
-    <div class="step">
-      <div class="step__num">2</div>
-      <div class="panel">
+      <div class="pin-step">
+        <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+        <span class="pin-step__number">02</span>
         <span class="step__time">60–90 minutes · 24 questions</span>
         <h2>Round 2 — Predict</h2>
         <p style="margin:0;">Twenty-four questions about <strong>Phase 5, which hasn't happened.</strong> No file contains these answers. You have to model Phases 1–4 and extrapolate.</p>
@@ -211,12 +314,11 @@
         </ul>
         <button onclick="location.href='predict.html'">Start Round 2</button>
       </div>
-    </div>
-    <div class="step__rail"></div>
+      <div class="pin-connector"></div>
 
-    <div class="step">
-      <div class="step__num">3</div>
-      <div class="panel">
+      <div class="pin-step">
+        <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+        <span class="pin-step__number">03</span>
         <span class="step__time">5 minutes · do this before the pool empties</span>
         <h2>Round 3 — Draft</h2>
         <p style="margin:0;">Claim <strong>one character</strong> you believe survives Phase 5. Exclusive: first team to claim a character takes them off the board for everyone else.</p>
@@ -226,12 +328,11 @@
         </ul>
         <button onclick="location.href='draft.html'">Start Round 3</button>
       </div>
-    </div>
-    <div class="step__rail"></div>
+      <div class="pin-connector"></div>
 
-    <div class="step">
-      <div class="step__num">4</div>
-      <div class="panel">
+      <div class="pin-step">
+        <svg class="pin-step__pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 3a1 1 0 0 1 .117 1.993l-.117 .007v4.764l1.894 3.789a1 1 0 0 1 .1 .331l.006 .116v2a1 1 0 0 1 -.883 .993l-.117 .007h-4v4a1 1 0 0 1 -1.993 .117l-.007 -.117v-4h-4a1 1 0 0 1 -.993 -.883l-.007 -.117v-2a1 1 0 0 1 .06 -.34l.046 -.107l1.894 -3.791v-4.762a1 1 0 0 1 -.117 -1.993l.117 -.007h8z"/></svg>
+        <span class="pin-step__number">04</span>
         <span class="step__time">20–30 minutes</span>
         <h2>Round 4 — Report</h2>
         <p style="margin:0;">Justify your three boldest Predict answers in a couple of sentences each, and name at least one trap you found in the data.</p>
@@ -279,5 +380,113 @@
     </section>
 
   </main>
+
+  <!-- THE WORLD: full-screen dataset reveal, opened from Round 0. Hidden
+       via the `hidden` attribute (not display:none in CSS alone) so it's
+       trivially inspectable/toggleable and never fights a stray style. -->
+  <div id="world-overlay" class="world" hidden>
+    <button id="close-world-btn" class="world__close" aria-label="Close">✕</button>
+    <div class="world__inner">
+      <h1 class="misprint" data-text="EARTH-4471">EARTH-4471</h1>
+      <span class="world__sub">ARCHIVE ONLINE — PHASES 1–4 DECLASSIFIED</span>
+      <div class="world__grid" id="world-grid"></div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var FILES = [
+        { name: 'films.csv', desc: '28 films across four phases — budget, box office, and critic/audience scores.' },
+        { name: 'characters.csv', desc: '60 characters — faction, first film, and powered status.' },
+        { name: 'appearances.csv', desc: 'Who appeared in what: screentime, dialogue, billing order, and survival.' },
+        { name: 'co_appearances.csv', desc: 'Which characters shared scenes together, and how often.' },
+        { name: 'post_credits.csv', desc: 'Every post-credits tease, and which later film paid it off.' },
+        { name: 'roster.csv', desc: 'The full 60-character roster — faction and powered status only.' },
+      ];
+
+      var overlay = document.getElementById('world-overlay');
+      var grid = document.getElementById('world-grid');
+      var opened = false;
+      var cache = {};
+
+      function parseCSV(text) {
+        var lines = text.trim().split(/\r?\n/);
+        return { header: lines[0].split(','), rows: lines.slice(1, 9).map(function (l) { return l.split(','); }) };
+      }
+
+      function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.textContent = String(str == null ? '' : str);
+        return div.innerHTML;
+      }
+
+      function renderTable(parsed) {
+        var thead = '<tr>' + parsed.header.map(function (h) { return '<th>' + escapeHtml(h) + '</th>'; }).join('') + '</tr>';
+        var tbody = parsed.rows.map(function (r) {
+          return '<tr>' + r.map(function (c) { return '<td>' + escapeHtml(c) + '</td>'; }).join('') + '</tr>';
+        }).join('');
+        return '<table>' + thead + tbody + '</table>';
+      }
+
+      function buildCards() {
+        FILES.forEach(function (f) {
+          var card = document.createElement('div');
+          card.className = 'world-card';
+          card.innerHTML =
+            '<div class="world-card__name">' + f.name + '</div>' +
+            '<div class="world-card__rows" id="rows-' + f.name + '"></div>' +
+            '<p class="world-card__desc">' + f.desc + '</p>' +
+            '<div class="world-card__actions">' +
+              '<button class="btn--secondary view-btn">Preview</button>' +
+              '<a class="btn--secondary" href="data/' + f.name + '" download>Download</a>' +
+            '</div>' +
+            '<div class="world-card__preview"></div>';
+          grid.appendChild(card);
+
+          var previewEl = card.querySelector('.world-card__preview');
+          var viewBtn = card.querySelector('.view-btn');
+          viewBtn.addEventListener('click', function () {
+            var isOpen = previewEl.classList.contains('open');
+            if (isOpen) { previewEl.classList.remove('open'); viewBtn.textContent = 'Preview'; return; }
+            previewEl.classList.add('open');
+            viewBtn.textContent = 'Hide';
+            if (cache[f.name]) { previewEl.innerHTML = cache[f.name]; return; }
+            previewEl.textContent = 'Loading…';
+            fetch('data/' + f.name).then(function (r) { return r.text(); }).then(function (text) {
+              var parsed = parseCSV(text);
+              var html = renderTable(parsed);
+              cache[f.name] = html;
+              previewEl.innerHTML = html;
+              var rowCount = text.trim().split(/\r?\n/).length - 1;
+              document.getElementById('rows-' + f.name).textContent = rowCount + ' rows';
+            }).catch(function () {
+              previewEl.textContent = 'Could not load this file — check your connection.';
+            });
+          });
+        });
+      }
+
+      function popIn() {
+        var cards = grid.querySelectorAll('.world-card');
+        cards.forEach(function (card, i) {
+          setTimeout(function () { card.classList.add('popped'); }, i * 90);
+        });
+      }
+
+      function openWorld() {
+        overlay.hidden = false;
+        if (!opened) { buildCards(); requestAnimationFrame(popIn); opened = true; }
+        document.addEventListener('keydown', onKeydown);
+      }
+      function closeWorld() {
+        overlay.hidden = true;
+        document.removeEventListener('keydown', onKeydown);
+      }
+      function onKeydown(e) { if (e.key === 'Escape') closeWorld(); }
+
+      document.getElementById('open-world-btn').addEventListener('click', openWorld);
+      document.getElementById('close-world-btn').addEventListener('click', closeWorld);
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) closeWorld(); });
+    })();
+  </script>
 </body>
 </html>
