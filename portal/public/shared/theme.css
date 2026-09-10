@@ -295,9 +295,9 @@ nav.top-nav a.active { background: var(--marvel-red); color: #fff; }
   height: 32px; width: auto; max-width: 110px;
   object-fit: contain;
 }
-.top-nav__logo--round {
-  height: 32px; width: 32px; max-width: 32px;
-  border-radius: 50%; object-fit: cover;
+.top-nav__logo--square {
+  height: 36px; width: 36px; max-width: 36px;
+  object-fit: contain;
 }
 .top-nav__logo--vtapp { max-width: 90px; }
 

@@ -28,9 +28,9 @@ function renderNav(activePage) {
   const brand = document.createElement('div');
   brand.className = 'top-nav__brand';
   brand.innerHTML = `
-    <img src="shared/vitap-logo.png" alt="VIT-AP" class="top-nav__logo" onerror="this.remove()">
-    <img src="shared/dsc-logo.png" alt="DSC" class="top-nav__logo top-nav__logo--round" onerror="this.remove()">
     <img src="shared/vtapp-logo.png" alt="V-TAPP" class="top-nav__logo top-nav__logo--vtapp" onerror="this.remove()">
+    <img src="shared/vitap-logo.png" alt="VIT-AP" class="top-nav__logo" onerror="this.remove()">
+    <img src="shared/dsc-logo.png" alt="DSC" class="top-nav__logo top-nav__logo--square" onerror="this.remove()">
   `;
 
   nav.appendChild(links);

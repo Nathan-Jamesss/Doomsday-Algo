@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Bangers&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/theme.css">
-  <link rel="preload" as="image" href="assets/hero-chess.jpg" fetchpriority="high">
+  <link rel="preload" as="image" href="assets/hero-white.jpg" fetchpriority="high">
   <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <style>
     .stat-trio { display: flex; gap: var(--s-4); flex-wrap: wrap; margin: var(--s-5) 0; }
@@ -38,7 +38,7 @@
       height: 100vh;
       min-height: 480px;
       overflow: hidden;
-      background: #0a0d07;
+      background: #EDEDE8;
     }
     .hero__img {
       position: absolute; inset: 0;
@@ -95,12 +95,13 @@
     .r00 {
       position: relative;
       background: radial-gradient(ellipse at 30% 40%, #12200f 0%, #050603 70%);
-      border: var(--border);
-      border-color: var(--line-bright);
-      border-radius: 18px;
+      border: var(--border-thick);
+      border-color: var(--acid);
+      border-radius: 0;
       padding: var(--s-6) var(--s-5);
       margin-bottom: var(--s-6);
       overflow: hidden;
+      box-shadow: 10px 10px 0 var(--void), 10px 10px 0 3px var(--acid-deep);
     }
     .r00::before {
       content: '';
@@ -111,8 +112,12 @@
       pointer-events: none;
     }
     .r00__top { position: relative; text-align: center; margin-bottom: var(--s-5); }
-    .r00__top h2 { margin-bottom: var(--s-1); }
-    .r00__tagline { font-family: var(--font-mono); font-size: var(--t-sm); color: var(--acid); letter-spacing: 0.05em; margin: 0; }
+    .r00__top h2 { margin-bottom: var(--s-1); font-size: clamp(var(--t-2xl), 6vw, var(--t-4xl)); }
+    .r00__tagline {
+      font-family: var(--font-display); font-size: var(--t-lg); color: var(--acid);
+      letter-spacing: 0.03em; margin: 0; text-transform: uppercase;
+      text-shadow: 0 0 14px rgba(57,255,106,0.6);
+    }
     .r00__body { position: relative; display: flex; align-items: center; gap: var(--s-6); flex-wrap: wrap; }
     .r00__globe-wrap { position: relative; flex-shrink: 0; }
     .r00__globe-wrap canvas { display: block; }
@@ -263,7 +268,7 @@
 </head>
 <body>
   <section class="hero" id="hero">
-    <img src="assets/hero-chess.jpg" alt="" class="hero__img" fetchpriority="high" loading="eager">
+    <img src="assets/hero-white.jpg" alt="" class="hero__img" fetchpriority="high" loading="eager">
     <div class="hero__overlay">
       <button id="play-now-btn" class="hero__play">▶ PLAY NOW</button>
       <span class="hero__hint">Data Science Club · V-TAPP 2026</span>
@@ -294,7 +299,7 @@
     <section class="r00">
       <div class="r00__top">
         <h2 class="misprint" data-text="EARTH-4471">EARTH-4471</h2>
-        <p class="r00__tagline">This is not Earth-616.</p>
+        <p class="r00__tagline">This is not the world you know.</p>
       </div>
       <div class="r00__body">
         <div class="r00__globe-wrap">
