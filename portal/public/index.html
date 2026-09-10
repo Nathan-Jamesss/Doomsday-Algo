@@ -194,7 +194,7 @@
 </head>
 <body>
   <section class="hero" id="hero">
-    <video id="hero-video" autoplay muted playsinline preload="auto">
+    <video id="hero-video" autoplay muted playsinline preload="auto" poster="assets/hero-poster.jpg">
       <source src="assets/landing-hero.mp4" type="video/mp4">
     </video>
     <canvas id="hero-freeze" style="display:none;"></canvas>
@@ -243,6 +243,14 @@
   <script>
     renderBanner();
     renderNav('landing');
+    // Landing only: the full-width pink disclaimer strip sits awkwardly
+    // above the cinematic video hero. Nav positioning above still relies
+    // on the banner element existing in the DOM (see shared/nav.js), so
+    // it's hidden here rather than skipped -- the disclaimer itself moves
+    // to a quiet note inside the briefing card below, i.e. after the
+    // hero/PLAY NOW moment. Every other page keeps the top banner as-is.
+    var topBanner = document.querySelector('.banner-earth4471');
+    if (topBanner) topBanner.style.display = 'none';
   </script>
   <main style="max-width:960px;margin:2rem auto;padding:0 1.5rem;">
 
@@ -252,6 +260,7 @@
         <span class="win__title">EARTH-4471 // BRIEFING</span>
       </header>
       <div class="win__body">
+        <p class="mono" style="font-size:var(--t-xs);letter-spacing:0.08em;color:var(--glitch);text-transform:uppercase;margin-bottom:var(--s-4);">Earth-4471 Archive — this is not Earth-616. Anything you remember about the real MCU is wrong here.</p>
         <h1 class="misprint" data-text="DOOMSDAY ALGORITHM">DOOMSDAY ALGORITHM</h1>
         <span class="caption">MCU PREDICTION CHALLENGE · V-TAPP 2026</span>
         <p style="margin-top:var(--s-4);">You have four completed phases of a film universe that does not exist. Phase 5 <span class="redact">████████████</span> has not happened. Predict it.</p>
