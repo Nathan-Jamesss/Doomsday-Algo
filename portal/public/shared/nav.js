@@ -22,15 +22,15 @@ function renderNav(activePage) {
     links.appendChild(a);
   });
 
-  // Brand cluster: VIT-AP logo, DSC logo, V-TAPP label. Logo <img> tags are
-  // added here (not hardcoded to a filename) so a missing asset just skips
-  // that badge instead of breaking the whole nav.
+  // Brand cluster: VIT-AP logo, DSC logo, V-TAPP logo. Each <img> fails
+  // gracefully via onerror so a missing asset just skips that badge
+  // instead of breaking the whole nav.
   const brand = document.createElement('div');
   brand.className = 'top-nav__brand';
   brand.innerHTML = `
     <img src="shared/vitap-logo.png" alt="VIT-AP" class="top-nav__logo" onerror="this.remove()">
     <img src="shared/dsc-logo.png" alt="DSC" class="top-nav__logo top-nav__logo--round" onerror="this.remove()">
-    <span class="top-nav__vtapp">V-TAPP</span>
+    <img src="shared/vtapp-logo.png" alt="V-TAPP" class="top-nav__logo top-nav__logo--vtapp" onerror="this.remove()">
   `;
 
   nav.appendChild(links);
