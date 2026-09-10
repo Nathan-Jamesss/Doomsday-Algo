@@ -3,22 +3,34 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Leaderboard — Doomsday Algorithm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Bangers&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/theme.css">
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="shared/firebaseConfig.js"></script>
 </head>
-<body>
+<body class="projector">
   <script src="shared/banner.js"></script>
-  <main style="max-width:1100px;margin:2rem auto;padding:0 1.5rem;">
-    <h1 class="accent-red">Live Leaderboard</h1>
+  <main style="max-width:1240px;margin:2rem auto;padding:0 1.5rem;">
+    <h1 class="misprint" data-text="LIVE STANDINGS">LIVE STANDINGS</h1>
+    <p id="reveal-status" class="stamp stamp--sealed"></p>
     <!-- No auth infra in this project (zero-cost constraint rules out
          Firebase Cloud Functions / Blaze). Phase 5 reveal and all grading
          run from the organizer's own laptop via portal/local-server/ — see
          RUNBOOK.md. There is no in-browser reveal control by design. -->
-    <p id="reveal-status" style="opacity:0.7;font-size:0.9rem;"></p>
-    <table id="board" style="width:100%;margin-top:1rem;font-size:1.2rem;"></table>
+    <section class="win win--lift">
+      <header class="win__bar">
+        <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="win__title">EARTH-4471 // STANDINGS [LIVE]</span>
+      </header>
+      <div class="win__body" style="padding:0;">
+        <table id="board" class="board" style="width:100%;"></table>
+      </div>
+    </section>
   </main>
   <script src="admin.js"></script>
 </body>

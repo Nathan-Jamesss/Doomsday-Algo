@@ -39,9 +39,11 @@ function renderBoard(takenMap) {
   characterPool.forEach(name => {
     const id = slugify(name);
     const card = document.createElement('div');
-    card.className = 'panel';
     const taken = takenMap[id];
-    card.innerHTML = `<strong>${escapeHtml(name)}</strong><br>${taken ? `<span class="accent-red">Picked by ${escapeHtml(taken)}</span>` : ''}`;
+    card.className = taken ? 'char char--taken' : 'char';
+    const isMine = taken === teamId;
+    card.innerHTML = `<span class="char__name">${escapeHtml(name)}</span>` +
+      (taken ? `<span class="char__stamp stamp ${isMine ? 'stamp--done' : 'stamp--taken'}">${isMine ? 'YOURS' : 'TAKEN'}</span><span class="char__meta">Picked by ${escapeHtml(taken)}</span>` : '');
     if (!taken && !alreadyPicked) {
       const btn = document.createElement('button');
       btn.textContent = 'Draft';
@@ -58,11 +60,11 @@ function renderBoard(takenMap) {
         const batch = db.batch();
         batch.set(db.collection('draft_picks').doc(id), { teamId, characterId: id, characterName: name, pickedAt: Date.now() });
         batch.set(db.collection('draft_team_locks').doc(teamId), { teamId, characterId: id, pickedAt: Date.now() });
-        batch.commit().catch(() => alert('Someone just took this character, or you already have a pick.'));
+        batch.commit().catch(() => toast('Someone just took this character, or you already have a pick.', 'error'));
       });
       card.appendChild(btn);
     } else if (!taken && alreadyPicked) {
-      card.innerHTML += '<br><span style="opacity:0.6;">(you already drafted a character)</span>';
+      card.innerHTML += '<span class="char__meta">(you already drafted a character)</span>';
     }
     board.appendChild(card);
   });
@@ -74,7 +76,7 @@ fetch('data/draft_pool.json')
     characterPool = pool;
     renderBoard(latestTakenMap);
   })
-  .catch(() => alert('Could not load the draft pool. Check your connection and reload.'));
+  .catch(() => toast('Could not load the draft pool. Check your connection and reload.', 'error'));
 
 db.collection('draft_picks').onSnapshot(snap => {
   const takenMap = {};

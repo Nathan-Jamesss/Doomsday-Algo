@@ -3,19 +3,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Report — Doomsday Algorithm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Bangers&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/theme.css">
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="shared/firebaseConfig.js"></script>
+  <script src="shared/toast.js"></script>
 </head>
 <body>
   <script src="shared/banner.js"></script>
   <script src="shared/nav.js"></script>
-  <main style="max-width:800px;margin:2rem auto;padding:0 1.5rem;">
-    <h1 class="accent-green">Round 4 — Justify your top 3</h1>
+  <main style="max-width:720px;margin:2rem auto;padding:0 1.5rem;">
+    <section class="win win--accent">
+      <header class="win__bar">
+        <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="win__title">EARTH-4471 // ROUND 04 — JUSTIFY</span>
+      </header>
+      <div class="win__body">
+        <h1 style="margin-bottom:var(--s-3);">Defend your top 3</h1>
+        <p style="margin:0;">We pulled your three boldest predictions. For each, say what in the data backs it — and name any trap you found and how you handled it.</p>
+      </div>
+    </section>
     <div id="report-form"></div>
-    <button id="submit-report">Submit report</button>
+    <button id="submit-report" class="btn--lg btn--block">Submit report</button>
   </main>
   <script src="report.js"></script>
 </body>

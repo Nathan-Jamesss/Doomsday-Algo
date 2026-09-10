@@ -58,7 +58,7 @@ document.getElementById('judge-id-save').addEventListener('click', async () => {
 function renderCurrent() {
   const view = document.getElementById('report-view');
   if (currentIndex >= queue.length) {
-    view.innerHTML = '<p>Queue complete.</p>';
+    view.innerHTML = '<div class="placeholder">QUEUE COMPLETE — NO REPORTS PENDING</div><p style="text-align:center;margin-top:var(--s-4);"><span class="fx">Nice.</span></p>';
     return;
   }
   // Blind queue: only the display-order position ("Report #N") is shown.
@@ -66,17 +66,42 @@ function renderCurrent() {
   // only carried through to the judge_scores write below so the aggregation
   // trigger (Task 9) knows which leaderboard row to update.
   const report = queue[currentIndex];
-  view.innerHTML = `<h2>Report #${currentIndex + 1} of ${queue.length}</h2>` +
-    report.entries.map(e => `<p><strong>${escapeHtml(e.questionId)}</strong>: ${escapeHtml(e.chartJustification)} — trap: ${escapeHtml(e.trapNote)}</p>`).join('') +
-    CATEGORIES.map(cat => `
-      <div class="panel" style="margin:0.5rem 0;">
-        <strong>${cat.label} (/${cat.max})</strong><br>
-        ${cat.checks.map((c, i) => `
-          <label><input type="checkbox" data-cat="${cat.key}" data-pts="${c.pts}"> ${c.label} (+${c.pts})</label><br>
+  view.innerHTML = `
+    <section class="win win--accent">
+      <header class="win__bar">
+        <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="win__title">EARTH-4471 // REPORT ${currentIndex + 1} OF ${queue.length}</span>
+      </header>
+      <div class="win__body">
+        ${report.entries.map(e => `<p class="mono" style="border:var(--border-thin);padding:var(--s-3);background:var(--paper);"><strong>${escapeHtml(e.questionId)}</strong>: ${escapeHtml(e.chartJustification)} — trap: ${escapeHtml(e.trapNote)}</p>`).join('')}
+      </div>
+    </section>
+    ${CATEGORIES.map(cat => `
+      <div class="panel">
+        <h3 style="margin-bottom:var(--s-3);">${cat.label} <span class="mono" style="color:var(--marvel-blue);">/${cat.max}</span></h3>
+        ${cat.checks.map(c => `
+          <label style="display:flex;align-items:center;gap:var(--s-3);text-transform:none;font-weight:400;cursor:pointer;padding:var(--s-1) 0;">
+            <input type="checkbox" data-cat="${cat.key}" data-pts="${c.pts}">
+            <span style="flex:1;">${c.label}</span>
+            <span class="mono" style="color:var(--marvel-blue);">+${c.pts}</span>
+          </label>
         `).join('')}
       </div>
-    `).join('') +
-    `<button id="submit-judge">Submit and next</button>`;
+    `).join('')}
+    <div class="win win--warn" style="position:sticky;bottom:0;margin-bottom:0;">
+      <div class="win__body" style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-4);padding:var(--s-3) var(--s-4);">
+        <span class="mono" style="font-size:var(--t-2xl);">TOTAL: <span id="running-total">0</span> / 100</span>
+        <button id="submit-judge">Submit and next →</button>
+      </div>
+    </div>
+  `;
+
+  function updateRunningTotal() {
+    let sum = 0;
+    view.querySelectorAll('input[type=checkbox]:checked').forEach(box => { sum += Number(box.dataset.pts); });
+    document.getElementById('running-total').textContent = sum;
+  }
+  view.querySelectorAll('input[type=checkbox]').forEach(box => box.addEventListener('change', updateRunningTotal));
 
   document.getElementById('submit-judge').addEventListener('click', () => {
     const totals = {};
@@ -94,6 +119,6 @@ function renderCurrent() {
     }).then(() => {
       currentIndex++;
       renderCurrent();
-    }).catch(() => alert('Score submission failed (maybe already scored this report under this judge ID?). Not advancing — try again.'));
+    }).catch(() => toast('Score submission failed (maybe already scored this report under this judge ID?). Not advancing — try again.', 'error'));
   });
 }

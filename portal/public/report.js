@@ -55,27 +55,48 @@ async function loadTopThree() {
   const top3 = subs.slice(0, 3);
 
   const form = document.getElementById('report-form');
+  const submitBtn = document.getElementById('submit-report');
+
+  if (top3.length === 0) {
+    form.innerHTML = '<div class="placeholder">NO PREDICTIONS FOUND — COMPLETE ROUND 1 OR 2 FIRST</div>';
+    submitBtn.disabled = true;
+    return;
+  }
+
   top3.forEach((s, i) => {
     const div = document.createElement('div');
-    div.className = 'panel';
-    div.style.marginBottom = '1rem';
+    div.className = 'win';
     div.innerHTML = `
-      <p>Prediction ${i + 1}: question <code>${s.questionId}</code> — ${describePrediction(s)}</p>
-      <label>Chart/number that backs it:<br><textarea id="chart-${i}" rows="2" style="width:100%;"></textarea></label>
-      <label>Trap noticed (if any) and how you handled it:<br><textarea id="trap-${i}" rows="2" style="width:100%;"></textarea></label>
+      <header class="win__bar">
+        <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="win__title">PREDICTION ${i + 1}</span>
+      </header>
+      <div class="win__body">
+        <p style="margin-top:0;"><span class="mono">${s.questionId}</span> — you said <strong class="mono" style="color:var(--marvel-red);font-size:var(--t-xl);">${describePrediction(s)}</strong></p>
+        <label>Chart/number that backs it</label>
+        <textarea id="chart-${i}" rows="2"></textarea>
+        <label style="margin-top:var(--s-3);">Trap noticed (if any) and how you handled it</label>
+        <textarea id="trap-${i}" rows="2"></textarea>
+      </div>
     `;
     form.appendChild(div);
   });
 
-  document.getElementById('submit-report').addEventListener('click', () => {
+  submitBtn.addEventListener('click', () => {
     const entries = top3.map((s, i) => ({
       questionId: s.questionId,
       chartJustification: document.getElementById(`chart-${i}`).value,
       trapNote: document.getElementById(`trap-${i}`).value,
     }));
     db.collection('reports').doc(teamId).set({ teamId, entries, submittedAt: Date.now() })
-      .then(() => alert('Report submitted.'))
-      .catch(() => alert('Submission failed — check your connection and try again.'));
+      .then(() => {
+        toast('Report submitted.', 'ok');
+        form.innerHTML = '<div class="win win--accent"><header class="win__bar"><span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="win__title">EARTH-4471 // REPORT LOGGED</span></header><div class="win__body"><p style="margin:0;">A judge will score it. You don\'t have to wait.</p></div></div>';
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitted ✓';
+        submitBtn.classList.add('btn--done');
+      })
+      .catch(() => toast('Submission failed — check your connection and try again.', 'error'));
   });
 }
 

@@ -3,11 +3,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Predict — Doomsday Algorithm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Bangers&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/theme.css">
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="shared/firebaseConfig.js"></script>
+  <script src="shared/toast.js"></script>
 </head>
 <body>
   <script src="shared/banner.js"></script>
@@ -16,16 +21,30 @@
     renderBanner();
     renderNav('predict');
   </script>
-  <main style="max-width:900px;margin:2rem auto;padding:0 1.5rem;">
-    <h1 class="accent-green">Round 2 — Predict</h1>
-    <div class="panel">
-      <p><strong>Nothing here is lookup-able.</strong> These 24 questions are about Phase 5, which has not happened. No CSV contains the answers — you have to build a model from Phases 1–4 and extrapolate.</p>
-      <p>Answer each with the probability you'd actually bet on. Scoring is a Brier score: an honest 60% beats a bluffed 95% that turns out wrong. Skipping a question scores the same as answering 50%, so a genuine shrug costs you nothing extra.</p>
-      <p style="opacity:0.8;">Rough time: 60–90 minutes. Watch for traps in the data — not every visible correlation is real.</p>
-    </div>
-    <div id="team-id-prompt" class="panel">
-      <label>Team ID: <input id="team-id-input" type="text"></label>
-      <button id="team-id-save">Continue</button>
+  <main style="max-width:960px;margin:2rem auto;padding:0 1.5rem;">
+    <section class="win win--glitch">
+      <header class="win__bar">
+        <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="win__title">EARTH-4471 // ROUND 02 — PREDICT [SEALED]</span>
+      </header>
+      <div class="win__body">
+        <span class="caption">NO FILE CONTAINS THESE ANSWERS</span>
+        <h1 style="margin-top:var(--s-3);">Predict</h1>
+        <p><strong>Nothing here is lookup-able.</strong> These 24 questions are about Phase 5, which has not happened. No CSV contains the answers — you have to build a model from Phases 1–4 and extrapolate.</p>
+        <p>Answer each with the probability you'd actually bet on. Scoring is a Brier score: an honest 60% beats a bluffed 95% that turns out wrong. Skipping a question scores the same as answering 50%, so a genuine shrug costs you nothing extra.</p>
+        <p style="margin-bottom:0;">Rough time: 60–90 minutes. Watch for traps in the data — not every visible correlation is real.</p>
+      </div>
+    </section>
+    <div id="team-id-prompt" class="win win--warn">
+      <header class="win__bar">
+        <span class="win__dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="win__title">EARTH-4471 // IDENTIFY</span>
+      </header>
+      <div class="win__body">
+        <label>Team ID</label>
+        <input id="team-id-input" type="text">
+        <button id="team-id-save" style="margin-top:var(--s-3);">Continue</button>
+      </div>
     </div>
     <div id="questions" style="display:none;"></div>
     <!-- No live per-team score here by design: a raw predictRaw value,
@@ -34,7 +53,7 @@
          and extract the whole answer key during Round 2 itself (caught in
          final review). Combined standings live on the projector
          (admin.html), which only ever shows rank + blended total. -->
-    <p style="opacity:0.7;">Check the projector for live standings.</p>
+    <p style="color:var(--text-quiet);">Check the projector for live standings.</p>
   </main>
   <script src="predict.js"></script>
 </body>
