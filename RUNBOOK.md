@@ -18,7 +18,7 @@
 
 Setup steps 1-6 below are **complete** and were verified end-to-end against the live deployment on 2026-09-10: dataset built, Firestore seeded, rules + Hosting deployed, a real submission graded through to `leaderboard_public`, draft pool served, report page loading a team's own submissions. Test data was deleted afterwards; the leaderboard is empty.
 
-On event day you only need the **During the event** section: start `grading-server.js` before noon, and run `reveal.js` at the end.
+On event day you only need the **During the event** section: start `grading-server.js` before 9 AM, and run `reveal.js` at the end.
 
 ---
 
@@ -96,11 +96,11 @@ If any of these fail, fix it now — you will not have time during the live even
 
 ## During the event
 
-**This is a drop-in event, not a synchronized one.** Event window: **12:00 PM – 6:00 PM, September 11, 2026.** Teams arrive and leave whenever within that window, at their own pace — there's no group kickoff and no fixed round boundaries. The only thing with real time pressure is Draft (character pool shrinks as the day goes on); everything else is per-team.
+**This is a drop-in event, not a synchronized one.** Event window: **9:00 AM – 6:00 PM, September 11, 2026.** Teams arrive and leave whenever within that window, at their own pace — there's no group kickoff and no fixed round boundaries. The only thing with real time pressure is Draft (character pool shrinks as the day goes on); everything else is per-team.
 
-**Expected runtime is 2.5-3 hours per team** (Explore 30-45 min, Predict 60-90 min, Draft 5 min, Report 20-30 min). That is deliberately longer than the window can absorb for a late arrival: a team walking in at 4 PM will not finish all four rounds by 6. This is an accepted trade (organizer's call — a real event, not a 20-minute filler). Mitigations already built in: Explore, Predict and Report are each graded per-submission the instant they arrive, so a partial run still scores everything it earned, and the landing page says so up front. If teams are still working at 6 PM, either let them finish before running `reveal.js` or run it and accept their Draft picks score against the reveal like everyone else's.
+**Expected runtime is 2.5-3 hours per team** (Explore 30-45 min, Predict 60-90 min, Draft 5 min, Report 20-30 min). With a 9-hour window, any team starting before roughly 3:00 PM finishes comfortably; only a very late arrival runs short. Mitigations for that case: Explore, Predict and Report are each graded per-submission the instant they arrive, so a partial run still scores everything it earned, and the landing page says so up front. If teams are still working at 6 PM, either let them finish before running `reveal.js` or run it and accept their Draft picks score against the reveal like everyone else's.
 
-1. **Before 12:00 PM**, start the grading server and leave the terminal window open for the entire window:
+1. **Before 9:00 AM**, start the grading server and leave the terminal window open for the entire window:
    ```bash
    cd portal/local-server && node grading-server.js
    ```
@@ -117,7 +117,7 @@ If any of these fail, fix it now — you will not have time during the live even
 
 ## Known limitations (accepted, not fixed)
 
-- **No automated window enforcement.** Firestore rules don't check the clock — a team can technically submit outside 12 PM–6 PM. Compensate operationally: announce the window clearly, and simply don't run `seed.js`/deploy before 12 PM or accept new submissions as meaningful after you've decided to run `reveal.js`.
+- **No automated window enforcement.** Firestore rules don't check the clock — a team can technically submit outside 9 AM–6 PM. Compensate operationally: announce the window clearly, and simply don't run `seed.js`/deploy before 9 AM or accept new submissions as meaningful after you've decided to run `reveal.js`.
 - **Draft pool caps at ~40-44 characters, not your full team count** (the roster only has 60 characters total; an exclusive draft can't serve more picks than exist). Plan your expectations accordingly — teams arriving late in the day may find the pool thin or empty, which is expected, not a bug.
 - **Team IDs are self-chosen, not authenticated.** A team could type another team's name. Mitigate by having organizers verify/assign team IDs at check-in, same as the original paper-based plan.
 - **A team that submits zero Predict answers scores 0% on Predict, not the neutral 75% a team who answers something-but-not-everything gets.** The "skipped question defaults to neutral" rule only applies once a team has at least one submission (so grading has something to attach a score to) — a team that never interacts with Predict at all has no record to credit at all. Low real-world impact (a team doing literally nothing isn't meaningfully participating), but worth knowing if you see a 0% and wonder why.

@@ -2,8 +2,8 @@ from model import build_rng, FACTIONS
 
 # Bumped back up from 5/3/2/2 (12 total) to 10/6/4/4 (24 total) -- the event
 # moved from a strict 15-20 minute drop-in to a real 2.5-3 hour session
-# (organizer's explicit call, accepting that very late arrivals may not
-# finish inside the 12-6 window). Same 4 question types, just more of each.
+# (organizer's explicit call). The window is 9 AM-6 PM, so a team starting
+# before ~3 PM finishes comfortably. Same 4 question types, more of each.
 SURVIVAL_COUNT = 10
 TEAMUP_COUNT = 6
 PARTNER_COUNT = 4
