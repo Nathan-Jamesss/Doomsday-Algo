@@ -252,7 +252,9 @@ code, .mono, .num { font-family: var(--font-mono); font-weight: 700; }
 
 nav.top-nav {
   display: flex;
-  gap: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
   background: var(--void);
   border-bottom: var(--border-thick);
   padding: 0 var(--s-4);
@@ -261,6 +263,12 @@ nav.top-nav {
   z-index: var(--z-nav);
   overflow-x: auto;
 }
+.top-nav__links {
+  display: flex;
+  flex: 1 1 auto;
+  justify-content: center;
+  gap: 0;
+}
 nav.top-nav a {
   font-family: var(--font-display);
   font-size: var(--t-sm);
@@ -268,7 +276,7 @@ nav.top-nav a {
   letter-spacing: 0.06em;
   color: var(--chrome-dim);
   text-decoration: none;
-  padding: var(--s-3) var(--s-4);
+  padding: var(--s-3) var(--s-6);
   border-right: var(--border);
   white-space: nowrap;
   transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
@@ -276,6 +284,31 @@ nav.top-nav a {
 nav.top-nav a:first-child { border-left: var(--border); }
 nav.top-nav a:hover  { background: var(--surface-raised); color: var(--acid); }
 nav.top-nav a.active { background: var(--marvel-red); color: #fff; }
+
+.top-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-shrink: 0;
+}
+.top-nav__logo {
+  height: 32px; width: auto;
+  object-fit: contain;
+}
+.top-nav__logo--round { border-radius: 50%; }
+.top-nav__vtapp {
+  font-family: var(--font-display);
+  font-size: var(--t-sm);
+  letter-spacing: 0.08em;
+  color: var(--acid);
+  text-shadow: 0 0 8px rgba(57,255,106,0.5);
+}
+
+@media (max-width: 719px) {
+  nav.top-nav { justify-content: flex-start; }
+  .top-nav__links { justify-content: flex-start; }
+  .top-nav__brand { display: none; }
+}
 
 /* ============================================================
    THE WINDOW — signature component

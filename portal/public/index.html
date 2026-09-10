@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;700&family=Bangers&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="shared/theme.css">
+  <link rel="preload" as="image" href="assets/hero-white.jpg" fetchpriority="high">
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   <style>
     .stat-trio { display: flex; gap: var(--s-4); flex-wrap: wrap; margin: var(--s-5) 0; }
     .stat-chip {
@@ -36,7 +38,7 @@
       height: 100vh;
       min-height: 480px;
       overflow: hidden;
-      background: #000;
+      background: #EDEDE8;
     }
     .hero__img {
       position: absolute; inset: 0;
@@ -84,6 +86,45 @@
       letter-spacing: 0.1em;
       text-transform: uppercase;
       opacity: 0.75;
+    }
+
+    /* ============================================================
+       ARRIVAL — original dark-void panel (no third-party artwork),
+       globe on the left, "you have arrived" framing on top.
+       ============================================================ */
+    .r00 {
+      position: relative;
+      background: radial-gradient(ellipse at 30% 40%, #12200f 0%, #050603 70%);
+      border: var(--border);
+      border-color: var(--line-bright);
+      border-radius: 18px;
+      padding: var(--s-6) var(--s-5);
+      margin-bottom: var(--s-6);
+      overflow: hidden;
+    }
+    .r00::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(var(--line) 1px, transparent 1px);
+      background-size: 22px 22px;
+      opacity: 0.25;
+      pointer-events: none;
+    }
+    .r00__top { position: relative; text-align: center; margin-bottom: var(--s-5); }
+    .r00__top h2 { margin-bottom: var(--s-1); }
+    .r00__tagline { font-family: var(--font-mono); font-size: var(--t-sm); color: var(--acid); letter-spacing: 0.05em; margin: 0; }
+    .r00__body { position: relative; display: flex; align-items: center; gap: var(--s-6); flex-wrap: wrap; }
+    .r00__globe-wrap { position: relative; flex-shrink: 0; }
+    .r00__globe-wrap canvas { display: block; }
+    .r00__hint {
+      position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+      font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.1em;
+      color: var(--text-quiet); text-transform: uppercase; white-space: nowrap;
+    }
+    .r00__copy { flex: 1 1 240px; min-width: 220px; }
+    .r00__copy p { margin: 0; font-size: var(--t-sm); }
+    @media (max-width: 560px) {
+      .r00__body { justify-content: center; text-align: center; }
     }
 
     /* ============================================================
@@ -165,11 +206,14 @@
        ============================================================ */
     .world {
       position: fixed; inset: 0; z-index: var(--z-modal);
-      background: radial-gradient(ellipse at 50% 30%, #0E1509 0%, #030402 75%);
       overflow-y: auto;
       padding: var(--s-8) var(--s-4) var(--s-9);
     }
     .world[hidden] { display: none; }
+    .world__bg {
+      position: fixed; inset: 0; z-index: -1;
+      background: radial-gradient(ellipse at 50% 30%, #12200f 0%, #030402 75%);
+    }
     .world__close {
       position: fixed; top: var(--s-4); right: var(--s-4);
       width: 44px; height: 44px; border-radius: 50%;
@@ -219,7 +263,7 @@
 </head>
 <body>
   <section class="hero" id="hero">
-    <img src="assets/hero-room.jpg" alt="" class="hero__img">
+    <img src="assets/hero-white.jpg" alt="" class="hero__img" fetchpriority="high" loading="eager">
     <div class="hero__overlay">
       <button id="play-now-btn" class="hero__play">▶ PLAY NOW</button>
       <span class="hero__hint">Data Science Club · V-TAPP 2026</span>
@@ -246,6 +290,22 @@
     if (topBanner) topBanner.style.display = 'none';
   </script>
   <main style="max-width:960px;margin:2rem auto;padding:0 1.5rem;">
+
+    <section class="r00">
+      <div class="r00__top">
+        <h2 class="misprint" data-text="EARTH-4471">EARTH-4471</h2>
+        <p class="r00__tagline">This is not Earth-616.</p>
+      </div>
+      <div class="r00__body">
+        <div class="r00__globe-wrap">
+          <canvas id="r00-globe" width="180" height="180"></canvas>
+          <span class="r00__hint" id="r00-hint">Tap the globe</span>
+        </div>
+        <div class="r00__copy">
+          <p>Four phases of a film universe that doesn't exist. Spin it. Tap it. The archive is inside.</p>
+        </div>
+      </div>
+    </section>
 
     <section class="win win--lift" id="briefing">
       <header class="win__bar">
@@ -379,6 +439,7 @@
        via the `hidden` attribute (not display:none in CSS alone) so it's
        trivially inspectable/toggleable and never fights a stray style. -->
   <div id="world-overlay" class="world" hidden>
+    <div class="world__bg" aria-hidden="true"></div>
     <button id="close-world-btn" class="world__close" aria-label="Close">✕</button>
     <div class="world__inner">
       <h1 class="misprint" data-text="EARTH-4471">EARTH-4471</h1>
@@ -480,6 +541,27 @@
       document.getElementById('open-world-btn').addEventListener('click', openWorld);
       document.getElementById('close-world-btn').addEventListener('click', closeWorld);
       overlay.addEventListener('click', function (e) { if (e.target === overlay) closeWorld(); });
+
+      // Exposed so the Round 0 globe (a separate script, loaded after
+      // shared/globe.js) can open the same archive reveal on click,
+      // without duplicating the card-building logic above.
+      window.openWorld = openWorld;
+    })();
+  </script>
+  <script src="shared/globe.js"></script>
+  <script>
+    (function () {
+      var canvas = document.getElementById('r00-globe');
+      var hint = document.getElementById('r00-hint');
+      if (!canvas) return;
+      try {
+        var globe = createGlobe(canvas, { width: 180, height: 180 });
+        if (!globe) return;
+        globe.load().catch(function () { /* silently skip -- hint text still invites a tap-less path in via the Round 0 card's own button */ });
+        globe.onSurfaceClick(function () {
+          if (window.openWorld) window.openWorld();
+        });
+      } catch (e) { /* globe is decorative -- never break the landing page over it */ }
     })();
   </script>
 </body>
